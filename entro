@@ -1,0 +1,547 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local ScreenSize = workspace.CurrentCamera.ViewportSize
+
+pcall(function()
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+end)
+
+local IsMobile = (ScreenSize.X < 800) or (ScreenSize.Y < 600)
+
+local soundInstance = nil
+
+task.spawn(function()
+    pcall(function()
+        local folder = "Sounds"
+        local fileName = tostring(os.time()) .. ".mp3"
+        local soundPath = folder .. "/" .. fileName
+        local assetFunc = getsynasset or getcustomasset
+        if assetFunc then
+            if not isfolder(folder) then makefolder(folder) end
+            writefile(soundPath, game:HttpGet("https://files.catbox.moe/hgqqp7.mp3"))
+            soundInstance = Instance.new("Sound")
+            soundInstance.SoundId = assetFunc(soundPath)
+            soundInstance.Volume = 3
+            soundInstance.Parent = game:GetService("SoundService")
+            soundInstance:Play()
+            task.wait(13)
+            soundInstance:Stop()
+            soundInstance:Destroy()
+            if isfile(soundPath) then delfile(soundPath) end
+            soundInstance = nil
+        else
+            soundInstance = Instance.new("Sound")
+            soundInstance.SoundId = "rbxassetid://6895079853"
+            soundInstance.Volume = 3
+            soundInstance.Parent = game:GetService("SoundService")
+            soundInstance:Play()
+            task.wait(13)
+            soundInstance:Stop()
+            soundInstance:Destroy()
+            soundInstance = nil
+        end
+    end)
+end)
+
+local IntroGui = Instance.new("ScreenGui")
+IntroGui.Name = "ZenixIntroGui"
+IntroGui.ResetOnSpawn = false
+IntroGui.IgnoreGuiInset = true
+IntroGui.DisplayOrder = 999999
+IntroGui.Parent = PlayerGui
+
+local HoverSound = Instance.new("Sound")
+HoverSound.SoundId = "rbxassetid://6895079853"
+HoverSound.Volume = 0.3
+HoverSound.Parent = IntroGui
+
+local ClickSound = Instance.new("Sound")
+ClickSound.SoundId = "rbxassetid://5567540710"
+ClickSound.Volume = 0.5
+ClickSound.Parent = IntroGui
+
+local Background = Instance.new("ImageLabel")
+Background.Name = "Background"
+Background.Size = UDim2.new(1, 0, 1, 0)
+Background.Position = UDim2.new(0, 0, 0, 0)
+Background.BackgroundTransparency = 1
+Background.Image = "rbxthumb://type=Asset&id=123128716322089&w=420&h=420"
+Background.ImageColor3 = Color3.new(1, 1, 1)
+Background.ImageTransparency = 0
+Background.ZIndex = 1
+Background.Parent = IntroGui
+
+local DarkOverlay = Instance.new("Frame")
+DarkOverlay.Size = UDim2.new(1, 0, 1, 0)
+DarkOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+DarkOverlay.BackgroundTransparency = 0.2
+DarkOverlay.BorderSizePixel = 0
+DarkOverlay.ZIndex = 2
+DarkOverlay.Parent = Background
+
+local CenterImage = Instance.new("ImageLabel")
+CenterImage.Name = "CenterImage"
+CenterImage.Size = UDim2.new(0, (IsMobile and 120 or 150) * 1.15, 0, (IsMobile and 120 or 150) * 1.15)
+CenterImage.AnchorPoint = Vector2.new(1, 0)
+CenterImage.Position = UDim2.new(1, -20, 0, 20)
+CenterImage.BackgroundTransparency = 1
+CenterImage.Image = "rbxthumb://type=Asset&id=98180425331992&w=420&h=420"
+CenterImage.ImageColor3 = Color3.new(1, 1, 1)
+CenterImage.ImageTransparency = 0
+CenterImage.ZIndex = 3
+CenterImage.Parent = Background
+
+local CenterCorner = Instance.new("UICorner")
+CenterCorner.CornerRadius = UDim.new(0.5, 0)
+CenterCorner.Parent = CenterImage
+
+local CenterStroke = Instance.new("UIStroke")
+CenterStroke.Color = Color3.fromRGB(200, 200, 200)
+CenterStroke.Thickness = IsMobile and 2.5 or 3
+CenterStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+CenterStroke.Parent = CenterImage
+
+local CenterGradient = Instance.new("UIGradient")
+CenterGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(0.25, Color3.fromRGB(100, 100, 100)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(0.75, Color3.fromRGB(100, 100, 100)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+})
+CenterGradient.Rotation = 0
+CenterGradient.Parent = CenterStroke
+
+local originalAnchor = Vector2.new(1, 0)
+local originalPosition = UDim2.new(1, -20, 0, 20)
+
+local rotationSpeedVal = Instance.new("NumberValue")
+rotationSpeedVal.Value = 3
+rotationSpeedVal.Parent = IntroGui
+
+coroutine.wrap(function()
+    while IntroGui and IntroGui.Parent do
+        if CenterImage and CenterImage.Parent then
+            CenterImage.Rotation = (CenterImage.Rotation + rotationSpeedVal.Value) % 360
+        end
+        task.wait(0.001)
+    end
+end)()
+
+coroutine.wrap(function()
+    while IntroGui and IntroGui.Parent do
+        if CenterStroke and CenterStroke.Parent then
+            local grad = CenterStroke:FindFirstChild("UIGradient")
+            if grad then
+                grad.Rotation = (grad.Rotation + 2) % 360
+            end
+        end
+        task.wait(0.01)
+    end
+end)()
+
+local ButtonContainer = Instance.new("Frame")
+ButtonContainer.Name = "ButtonContainer"
+ButtonContainer.Size = UDim2.new(0.6, 0, 0.085, 0)
+ButtonContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+ButtonContainer.Position = UDim2.new(0.5, 0, 0.88, 0)
+ButtonContainer.BackgroundTransparency = 1
+ButtonContainer.ZIndex = 4
+ButtonContainer.Parent = Background
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, IsMobile and 10 or 20)
+UIListLayout.Parent = ButtonContainer
+
+local buttonGradients = {}
+local buttons = {}
+
+local function createButton(text, order)
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(0.35, 0, 1, 0)
+    Button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Button.Text = ""
+    Button.ZIndex = 5
+    Button.LayoutOrder = order
+    Button.AutoButtonColor = false
+    Button.Parent = ButtonContainer
+    table.insert(buttons, Button)
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, IsMobile and 10 or 12)
+    corner.Parent = Button
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(200, 200, 200)
+    stroke.Thickness = IsMobile and 2 or 2.5
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = Button
+
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.25, Color3.fromRGB(100, 100, 100)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.75, Color3.fromRGB(100, 100, 100)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+    })
+    gradient.Rotation = 0
+    gradient.Parent = stroke
+    table.insert(buttonGradients, gradient)
+
+    local btnText = Instance.new("TextLabel")
+    btnText.Size = UDim2.new(1, 0, 1, 0)
+    btnText.BackgroundTransparency = 1
+    btnText.Text = text
+    btnText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btnText.TextSize = IsMobile and 14 or 18
+    btnText.Font = Enum.Font.LuckiestGuy
+    btnText.TextXAlignment = Enum.TextXAlignment.Center
+    btnText.ZIndex = 6
+    btnText.Parent = Button
+
+    if not IsMobile then
+        Button.MouseEnter:Connect(function()
+            HoverSound:Play()
+            TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
+            TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 3.5}):Play()
+        end)
+        Button.MouseLeave:Connect(function()
+            TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play()
+            TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = IsMobile and 2 or 2.5}):Play()
+        end)
+    end
+
+    if IsMobile then
+        Button.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                TweenService:Create(Button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
+            end
+        end)
+        Button.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then
+                TweenService:Create(Button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play()
+            end
+        end)
+    end
+
+    return Button
+end
+
+local PlayButton = createButton("العب", 1)
+local RightsButton = createButton("© الحقوق", 2)
+
+coroutine.wrap(function()
+    while IntroGui and IntroGui.Parent do
+        for _, gradient in ipairs(buttonGradients) do
+            if gradient and gradient.Parent then
+                gradient.Rotation = (gradient.Rotation + 2) % 360
+            end
+        end
+        task.wait(0.01)
+    end
+end)()
+
+local isExiting = false
+local menuOpen = false
+
+local function stopSound()
+    pcall(function()
+        if soundInstance then
+            soundInstance:Stop()
+            soundInstance:Destroy()
+            soundInstance = nil
+        end
+        local sounds = game:GetService("SoundService"):GetChildren()
+        for _, sound in ipairs(sounds) do
+            if sound:IsA("Sound") then
+                sound:Stop()
+                sound:Destroy()
+            end
+        end
+    end)
+end
+
+local function breakButtons()
+    local directions = {
+        {X = -300, Y = -200, Rot = -45},
+        {X = 300, Y = -180, Rot = 45},
+        {X = -250, Y = 250, Rot = 30},
+        {X = 250, Y = 230, Rot = -30}
+    }
+    for i, btn in ipairs(buttons) do
+        local dir = directions[i % #directions + 1]
+        local xOff = (math.random() * 200 - 100) + dir.X
+        local yOff = (math.random() * 200 - 100) + dir.Y
+        local rot = dir.Rot + (math.random() * 40 - 20)
+        TweenService:Create(btn, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Position = UDim2.new(btn.Position.X.Scale, btn.Position.X.Offset + xOff, btn.Position.Y.Scale, btn.Position.Y.Offset + yOff),
+            Rotation = rot,
+            BackgroundTransparency = 1,
+            TextTransparency = 1
+        }):Play()
+        TweenService:Create(btn, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = UDim2.new(0.1, 0, 0.1, 0)
+        }):Play()
+    end
+    task.wait(0.3)
+    for _, btn in ipairs(buttons) do
+        btn.Visible = false
+    end
+end
+
+local function exitWithZoom(instant)
+    if isExiting then return end
+    isExiting = true
+    ClickSound:Play()
+    stopSound()
+
+    if instant then
+        pcall(function()
+            StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
+        end)
+        IntroGui:Destroy()
+        return
+    end
+
+    breakButtons()
+
+    local targetAnchor = Vector2.new(0.5, 0.5)
+    local targetPos = UDim2.new(0.5, 0, 0.5, 0)
+
+    local moveTween = TweenService:Create(CenterImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        AnchorPoint = targetAnchor,
+        Position = targetPos
+    })
+
+    moveTween:Play()
+    moveTween.Completed:Wait()
+
+    TweenService:Create(ButtonContainer, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+        Position = UDim2.new(0.5, 0, 1.2, 0)
+    }):Play()
+
+    TweenService:Create(rotationSpeedVal, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Value = 18
+    }):Play()
+
+    local scaleTween = TweenService:Create(CenterImage, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 2000, 0, 2000)
+    })
+    scaleTween:Play()
+
+    task.delay(0.6, function()
+        local fadeTime = 0.6
+        local fadeTweenInfo = TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+        TweenService:Create(CenterImage, fadeTweenInfo, {ImageTransparency = 1}):Play()
+        TweenService:Create(Background, fadeTweenInfo, {BackgroundTransparency = 1}):Play()
+        TweenService:Create(DarkOverlay, fadeTweenInfo, {BackgroundTransparency = 1}):Play()
+
+        task.delay(fadeTime, function()
+            pcall(function()
+                StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
+            end)
+            IntroGui:Destroy()
+        end)
+    end)
+end
+
+local DevMenu = Instance.new("Frame")
+DevMenu.Name = "DevMenu"
+DevMenu.Size = UDim2.new(0, IsMobile and 250 or 280, 0, IsMobile and 280 or 300)
+DevMenu.AnchorPoint = Vector2.new(0, 0.5)
+
+local closedPosition = UDim2.new(1, IsMobile and 20 or 40, 0.5, 0)
+local openPosition = UDim2.new(1, -(IsMobile and 270 or 310), 0.5, 0)
+
+DevMenu.Position = closedPosition
+DevMenu.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+DevMenu.ZIndex = 10
+DevMenu.Parent = IntroGui
+
+local DevCorner = Instance.new("UICorner")
+DevCorner.CornerRadius = UDim.new(0, IsMobile and 12 or 16)
+DevCorner.Parent = DevMenu
+
+local DevStroke = Instance.new("UIStroke")
+DevStroke.Color = Color3.fromRGB(255, 255, 255)
+DevStroke.Thickness = IsMobile and 1.5 or 2
+DevStroke.Parent = DevMenu
+
+local NeonGradient = Instance.new("UIGradient")
+NeonGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(0.25, Color3.fromRGB(150, 150, 150)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(0.75, Color3.fromRGB(150, 150, 150)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+})
+NeonGradient.Parent = DevStroke
+
+coroutine.wrap(function()
+    while IntroGui and IntroGui.Parent do
+        NeonGradient.Rotation = (NeonGradient.Rotation + 2) % 360
+        task.wait(0.01)
+    end
+end)()
+
+local DevTitle = Instance.new("TextLabel")
+DevTitle.Size = UDim2.new(1, 0, 0, IsMobile and 35 or 40)
+DevTitle.BackgroundTransparency = 1
+DevTitle.RichText = true
+DevTitle.Text = "حقوق ZENIX DARK JOKER"
+DevTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+DevTitle.Font = Enum.Font.GothamBold
+DevTitle.TextSize = IsMobile and 14 or 16
+DevTitle.ZIndex = 11
+DevTitle.Parent = DevMenu
+
+local Divider2 = Instance.new("Frame")
+Divider2.Size = UDim2.new(0.9, 0, 0, 1.5)
+Divider2.Position = UDim2.new(0.05, 0, 0, IsMobile and 33 or 38)
+Divider2.BorderSizePixel = 0
+Divider2.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+Divider2.ZIndex = 11
+Divider2.Parent = DevMenu
+
+local DevInfo = Instance.new("TextLabel")
+DevInfo.Size = UDim2.new(1, -(IsMobile and 15 or 20), 1, -(IsMobile and 45 or 52))
+DevInfo.Position = UDim2.new(0, (IsMobile and 8 or 10), 0, IsMobile and 38 or 42)
+DevInfo.BackgroundTransparency = 1
+DevInfo.RichText = true
+DevInfo.Text = [[<font color="rgb(255,255,255)">جميع الحقوق لسكربتات Zenix ومطوره زيـن</font>
+
+<font color="rgb(180,180,180)">تم صناعة السكربت في خلال سنة وانتهى في عام 2026</font>
+
+<font color="rgb(200,200,200)">جميع السكربتات صنعت يدوياً وبأفكار شخصية وأفكار أجانب</font>
+
+<font color="rgb(255,255,255)">نحاول نقدم أحسن شي يرضي العميل ولا يمل من اللعبة</font>
+
+<font color="rgb(255,255,255)">معلومات ZENIX DARK JOKER</font>
+
+<font color="rgb(200,200,200)">عدد مطورين السكربت: واحد (زين)</font>
+<font color="rgb(200,200,200)">المشرف: (joo)</font>
+
+<font color="rgb(200,200,200)">شكر خاص لمستعملين سكربتات Zenix، شكرا.</font>]]
+DevInfo.Font = Enum.Font.Gotham
+DevInfo.TextSize = IsMobile and 11 or 13
+DevInfo.TextWrapped = true
+DevInfo.TextXAlignment = Enum.TextXAlignment.Center
+DevInfo.TextYAlignment = Enum.TextYAlignment.Top
+DevInfo.ZIndex = 11
+DevInfo.Parent = DevMenu
+
+local CloseDev = Instance.new("TextButton")
+CloseDev.Size = UDim2.new(0, IsMobile and 22 or 26, 0, IsMobile and 22 or 26)
+CloseDev.Position = UDim2.new(1, -(IsMobile and 30 or 35), 0, IsMobile and 8 or 10)
+CloseDev.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+CloseDev.Text = "✕"
+CloseDev.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseDev.Font = Enum.Font.GothamBold
+CloseDev.TextSize = IsMobile and 11 or 13
+CloseDev.AutoButtonColor = false
+CloseDev.ZIndex = 11
+CloseDev.Parent = DevMenu
+
+if IsMobile then
+    CloseDev.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            TweenService:Create(CloseDev, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
+        end
+    end)
+    CloseDev.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            TweenService:Create(CloseDev, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play()
+        end
+    end)
+end
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0.5, 0)
+CloseCorner.Parent = CloseDev
+
+local CloseStroke = Instance.new("UIStroke")
+CloseStroke.Color = Color3.fromRGB(255, 255, 255)
+CloseStroke.Thickness = 1.5
+CloseStroke.Parent = CloseDev
+
+if not IsMobile then
+    CloseDev.MouseEnter:Connect(function()
+        HoverSound:Play()
+        TweenService:Create(CloseStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(200, 200, 200)}):Play()
+        TweenService:Create(CloseDev, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
+    end)
+    CloseDev.MouseLeave:Connect(function()
+        TweenService:Create(CloseStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(255, 255, 255)}):Play()
+        TweenService:Create(CloseDev, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play()
+    end)
+end
+
+local function toggleMenu(open)
+    if isExiting then return end
+    menuOpen = open
+    local targetPosition = open and openPosition or closedPosition
+
+    local easingStyle = open and Enum.EasingStyle.Back or Enum.EasingStyle.Quad
+    local easingDirection = open and Enum.EasingDirection.Out or Enum.EasingDirection.In
+
+    local tweenInfo = TweenInfo.new(0.6, easingStyle, easingDirection)
+    local menuTween = TweenService:Create(DevMenu, tweenInfo, {Position = targetPosition})
+    menuTween:Play()
+
+    if open then
+        local imageTarget = UDim2.new(0.5, -(IsMobile and 270 or 310) - 30, 0.5, 0)
+        local imageAnchor = Vector2.new(0.5, 0.5)
+        TweenService:Create(CenterImage, TweenInfo.new(0.6, easingStyle, easingDirection), {
+            Position = imageTarget,
+            AnchorPoint = imageAnchor
+        }):Play()
+    else
+        TweenService:Create(CenterImage, TweenInfo.new(0.6, easingStyle, easingDirection), {
+            Position = originalPosition,
+            AnchorPoint = originalAnchor
+        }):Play()
+    end
+end
+
+PlayButton.MouseButton1Click:Connect(function()
+    exitWithZoom(false)
+end)
+
+RightsButton.MouseButton1Click:Connect(function()
+    ClickSound:Play()
+    toggleMenu(not menuOpen)
+end)
+
+if IsMobile then
+    PlayButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            PlayButton.MouseButton1Click:Fire()
+        end
+    end)
+    RightsButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            RightsButton.MouseButton1Click:Fire()
+        end
+    end)
+end
+
+CloseDev.MouseButton1Click:Connect(function()
+    ClickSound:Play()
+    toggleMenu(false)
+end)
+
+if IsMobile then
+    CloseDev.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            CloseDev.MouseButton1Click:Fire()
+        end
+    end)
+end

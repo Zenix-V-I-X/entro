@@ -1,547 +1,944 @@
-local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local StarterGui = game:GetService("StarterGui")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local ScreenSize = workspace.CurrentCamera.ViewportSize
+local RunService   = game:GetService("RunService")
+local CoreGui      = game:GetService("CoreGui")
+local Players      = game:GetService("Players")
 
-pcall(function()
-    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
-end)
+local old = CoreGui:FindFirstChild("انترو Zenix")
+if old then old:Destroy() end
 
-local IsMobile = (ScreenSize.X < 800) or (ScreenSize.Y < 600)
+local camera       = workspace.CurrentCamera
+local viewportSize = camera.ViewportSize
+local UIScale      = viewportSize.Y / 450
+local IsMobile     = (viewportSize.X < 800) or (viewportSize.Y < 600)
 
-local soundInstance = nil
+local req = (syn and syn.request) or (http and http.request) or http_request or request
+local function fetch(url)
+    if req then
+        local ok, r = pcall(req, {Url = url, Method = "GET"})
+        if ok and r and (r.StatusCode == 200 or r.StatusCode == nil) and type(r.Body) == "string" and #r.Body > 8 then
+            return r.Body
+        end
+    end
+    local ok, b = pcall(game.HttpGet, game, url)
+    if ok and type(b) == "string" and #b > 8 then return b end
+    return nil
+end
+
+local audioSound = nil
+local audioPath  = nil
+
+local function StopAndDeleteMusic()
+    pcall(function()
+        if audioSound then
+            audioSound:Stop()
+            audioSound:Destroy()
+            audioSound = nil
+        end
+        if audioPath and isfile(audioPath) then
+            delfile(audioPath)
+            audioPath = nil
+        end
+    end)
+end
 
 task.spawn(function()
+    local folder = "Sounds"
+    local fileName = tostring(os.time()) .. ".mp3"
+    local soundPath = folder .. "/" .. fileName
+
+    local assetFunc = getsynasset or getcustomasset
+    if not assetFunc then return end
+
     pcall(function()
-        local folder = "Sounds"
-        local fileName = tostring(os.time()) .. ".mp3"
-        local soundPath = folder .. "/" .. fileName
-        local assetFunc = getsynasset or getcustomasset
-        if assetFunc then
-            if not isfolder(folder) then makefolder(folder) end
-            writefile(soundPath, game:HttpGet("https://files.catbox.moe/hgqqp7.mp3"))
-            soundInstance = Instance.new("Sound")
-            soundInstance.SoundId = assetFunc(soundPath)
-            soundInstance.Volume = 3
-            soundInstance.Parent = game:GetService("SoundService")
-            soundInstance:Play()
-            task.wait(13)
-            soundInstance:Stop()
-            soundInstance:Destroy()
-            if isfile(soundPath) then delfile(soundPath) end
-            soundInstance = nil
-        else
-            soundInstance = Instance.new("Sound")
-            soundInstance.SoundId = "rbxassetid://6895079853"
-            soundInstance.Volume = 3
-            soundInstance.Parent = game:GetService("SoundService")
-            soundInstance:Play()
-            task.wait(13)
-            soundInstance:Stop()
-            soundInstance:Destroy()
-            soundInstance = nil
-        end
+        if not isfolder(folder) then makefolder(folder) end
     end)
+
+    local url = "https://www.dropbox.com/scl/fi/w1ens2pi12txhcct3wszt/.mp3?rlkey=wjp3rx459hpoo4s83ay2w0jfc&st=x7jw931c&dl=1"
+
+    local success = false
+    for attempt = 1, 3 do
+        pcall(function()
+            local data = game:HttpGet(url)
+            if data and #data > 100 then
+                writefile(soundPath, data)
+                success = true
+            end
+        end)
+        if success then break end
+        task.wait(0.5)
+    end
+
+    if not success then
+        local data = fetch(url)
+        if data and #data > 100 then
+            pcall(function()
+                writefile(soundPath, data)
+                success = true
+            end)
+        end
+    end
+
+    if not success or not isfile(soundPath) then return end
+
+    local okSound, err = pcall(function()
+        local sound = Instance.new("Sound")
+        sound.SoundId = assetFunc(soundPath)
+        sound.Volume = 3
+        sound.Looped = true
+        sound.Parent = game:GetService("SoundService")
+
+        audioSound = sound
+        audioPath = soundPath
+        sound:Play()
+    end)
+
+    if not okSound then
+        pcall(function() if isfile(soundPath) then delfile(soundPath) end end)
+    end
 end)
 
-local IntroGui = Instance.new("ScreenGui")
-IntroGui.Name = "ZenixIntroGui"
-IntroGui.ResetOnSpawn = false
-IntroGui.IgnoreGuiInset = true
-IntroGui.DisplayOrder = 999999
-IntroGui.Parent = PlayerGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name           = "انترو Zenix"
+ScreenGui.ResetOnSpawn   = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent         = CoreGui
+Instance.new("UIScale", ScreenGui).Scale = UIScale
 
-local HoverSound = Instance.new("Sound")
-HoverSound.SoundId = "rbxassetid://6895079853"
-HoverSound.Volume = 0.3
-HoverSound.Parent = IntroGui
+local SolidBlackBG = Instance.new("Frame")
+SolidBlackBG.Size                   = UDim2.new(1, 0, 1, 0)
+SolidBlackBG.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
+SolidBlackBG.BackgroundTransparency = 0
+SolidBlackBG.BorderSizePixel        = 0
+SolidBlackBG.ZIndex                 = 0
+SolidBlackBG.Parent                 = ScreenGui
 
-local ClickSound = Instance.new("Sound")
-ClickSound.SoundId = "rbxassetid://5567540710"
-ClickSound.Volume = 0.5
-ClickSound.Parent = IntroGui
+local BlackBG = Instance.new("Frame")
+BlackBG.Size                   = UDim2.new(1, 0, 1, 0)
+BlackBG.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
+BlackBG.BackgroundTransparency = 0
+BlackBG.BorderSizePixel        = 0
+BlackBG.ZIndex                 = 1
+BlackBG.Parent                 = ScreenGui
 
-local Background = Instance.new("ImageLabel")
-Background.Name = "Background"
-Background.Size = UDim2.new(1, 0, 1, 0)
-Background.Position = UDim2.new(0, 0, 0, 0)
-Background.BackgroundTransparency = 1
-Background.Image = "rbxthumb://type=Asset&id=123128716322089&w=420&h=420"
-Background.ImageColor3 = Color3.new(1, 1, 1)
-Background.ImageTransparency = 0
-Background.ZIndex = 1
-Background.Parent = IntroGui
+local BG_IDS = {
+    {id = "115684724179028", dark = false},
+    {id = "119434245652231", dark = false},
+    {id = "119893879485075", dark = false},
+    {id = "111505847374415", dark = false},
+    {id = "140037440272546", dark = false},
+    {id = "139473536171737", dark = false},
+    {id = "127645790269323", dark = false},
+    {id = "104358027848907", dark = false},
+    {id = "121150097598494", dark = false},
+    {id = "119469056121665", dark = false},
+    {id = "121150097598494", dark = false},
+    {id = "140420634301835", dark = true},
+    {id = "119865160288525", dark = true},
+}
 
-local DarkOverlay = Instance.new("Frame")
-DarkOverlay.Size = UDim2.new(1, 0, 1, 0)
-DarkOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-DarkOverlay.BackgroundTransparency = 0.2
-DarkOverlay.BorderSizePixel = 0
-DarkOverlay.ZIndex = 2
-DarkOverlay.Parent = Background
+local BgCarousel = Instance.new("Frame")
+BgCarousel.Name                   = "BgCarousel"
+BgCarousel.Size                   = UDim2.new(1, 0, 1, 0)
+BgCarousel.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
+BgCarousel.BackgroundTransparency = 0
+BgCarousel.BorderSizePixel        = 0
+BgCarousel.ClipsDescendants       = true
+BgCarousel.ZIndex                 = 2
+BgCarousel.Parent                 = BlackBG
 
-local CenterImage = Instance.new("ImageLabel")
-CenterImage.Name = "CenterImage"
-CenterImage.Size = UDim2.new(0, (IsMobile and 120 or 150) * 1.15, 0, (IsMobile and 120 or 150) * 1.15)
-CenterImage.AnchorPoint = Vector2.new(1, 0)
-CenterImage.Position = UDim2.new(1, -20, 0, 20)
-CenterImage.BackgroundTransparency = 1
-CenterImage.Image = "rbxthumb://type=Asset&id=98180425331992&w=420&h=420"
-CenterImage.ImageColor3 = Color3.new(1, 1, 1)
-CenterImage.ImageTransparency = 0
-CenterImage.ZIndex = 3
-CenterImage.Parent = Background
-
-local CenterCorner = Instance.new("UICorner")
-CenterCorner.CornerRadius = UDim.new(0.5, 0)
-CenterCorner.Parent = CenterImage
-
-local CenterStroke = Instance.new("UIStroke")
-CenterStroke.Color = Color3.fromRGB(200, 200, 200)
-CenterStroke.Thickness = IsMobile and 2.5 or 3
-CenterStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-CenterStroke.Parent = CenterImage
-
-local CenterGradient = Instance.new("UIGradient")
-CenterGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-    ColorSequenceKeypoint.new(0.25, Color3.fromRGB(100, 100, 100)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-    ColorSequenceKeypoint.new(0.75, Color3.fromRGB(100, 100, 100)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-})
-CenterGradient.Rotation = 0
-CenterGradient.Parent = CenterStroke
-
-local originalAnchor = Vector2.new(1, 0)
-local originalPosition = UDim2.new(1, -20, 0, 20)
-
-local rotationSpeedVal = Instance.new("NumberValue")
-rotationSpeedVal.Value = 3
-rotationSpeedVal.Parent = IntroGui
-
-coroutine.wrap(function()
-    while IntroGui and IntroGui.Parent do
-        if CenterImage and CenterImage.Parent then
-            CenterImage.Rotation = (CenterImage.Rotation + rotationSpeedVal.Value) % 360
-        end
-        task.wait(0.001)
-    end
-end)()
-
-coroutine.wrap(function()
-    while IntroGui and IntroGui.Parent do
-        if CenterStroke and CenterStroke.Parent then
-            local grad = CenterStroke:FindFirstChild("UIGradient")
-            if grad then
-                grad.Rotation = (grad.Rotation + 2) % 360
-            end
-        end
-        task.wait(0.01)
-    end
-end)()
-
-local ButtonContainer = Instance.new("Frame")
-ButtonContainer.Name = "ButtonContainer"
-ButtonContainer.Size = UDim2.new(0.6, 0, 0.085, 0)
-ButtonContainer.AnchorPoint = Vector2.new(0.5, 0.5)
-ButtonContainer.Position = UDim2.new(0.5, 0, 0.88, 0)
-ButtonContainer.BackgroundTransparency = 1
-ButtonContainer.ZIndex = 4
-ButtonContainer.Parent = Background
-
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.FillDirection = Enum.FillDirection.Horizontal
-UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, IsMobile and 10 or 20)
-UIListLayout.Parent = ButtonContainer
-
-local buttonGradients = {}
-local buttons = {}
-
-local function createButton(text, order)
-    local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(0.35, 0, 1, 0)
-    Button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Button.Text = ""
-    Button.ZIndex = 5
-    Button.LayoutOrder = order
-    Button.AutoButtonColor = false
-    Button.Parent = ButtonContainer
-    table.insert(buttons, Button)
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, IsMobile and 10 or 12)
-    corner.Parent = Button
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(200, 200, 200)
-    stroke.Thickness = IsMobile and 2 or 2.5
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    stroke.Parent = Button
-
-    local gradient = Instance.new("UIGradient")
-    gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(0.25, Color3.fromRGB(100, 100, 100)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(0.75, Color3.fromRGB(100, 100, 100)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-    })
-    gradient.Rotation = 0
-    gradient.Parent = stroke
-    table.insert(buttonGradients, gradient)
-
-    local btnText = Instance.new("TextLabel")
-    btnText.Size = UDim2.new(1, 0, 1, 0)
-    btnText.BackgroundTransparency = 1
-    btnText.Text = text
-    btnText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btnText.TextSize = IsMobile and 14 or 18
-    btnText.Font = Enum.Font.LuckiestGuy
-    btnText.TextXAlignment = Enum.TextXAlignment.Center
-    btnText.ZIndex = 6
-    btnText.Parent = Button
-
-    if not IsMobile then
-        Button.MouseEnter:Connect(function()
-            HoverSound:Play()
-            TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
-            TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 3.5}):Play()
-        end)
-        Button.MouseLeave:Connect(function()
-            TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play()
-            TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = IsMobile and 2 or 2.5}):Play()
-        end)
-    end
-
-    if IsMobile then
-        Button.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Touch then
-                TweenService:Create(Button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
-            end
-        end)
-        Button.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Touch then
-                TweenService:Create(Button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play()
-            end
-        end)
-    end
-
-    return Button
+local imageLabels = {}
+for i, data in ipairs(BG_IDS) do
+    local im = Instance.new("ImageLabel")
+    im.Name = "BgImage" .. i
+    im.Size = UDim2.new(1, 0, 1, 0)
+    im.Position = UDim2.new(0, 0, 0, 0)
+    im.BackgroundTransparency = 1
+    im.ScaleType = Enum.ScaleType.Crop
+    im.Image = "rbxthumb://type=Asset&id=" .. data.id .. "&w=420&h=420"
+    im.ImageTransparency = 1
+    im.Visible = true
+    im.ZIndex = 1
+    im.Parent = BgCarousel
+    imageLabels[i] = im
 end
 
-local PlayButton = createButton("العب", 1)
-local RightsButton = createButton("© الحقوق", 2)
+local BgDarkOverlay = Instance.new("Frame")
+BgDarkOverlay.Name                   = "BgDarkOverlay"
+BgDarkOverlay.Size                   = UDim2.new(1, 0, 1, 0)
+BgDarkOverlay.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
+BgDarkOverlay.BackgroundTransparency = 1
+BgDarkOverlay.BorderSizePixel        = 0
+BgDarkOverlay.ZIndex                 = 3
+BgDarkOverlay.Parent                 = BgCarousel
 
-coroutine.wrap(function()
-    while IntroGui and IntroGui.Parent do
-        for _, gradient in ipairs(buttonGradients) do
-            if gradient and gradient.Parent then
-                gradient.Rotation = (gradient.Rotation + 2) % 360
-            end
-        end
-        task.wait(0.01)
+local DarkOverlay = Instance.new("Frame")
+DarkOverlay.Size                   = UDim2.new(1, 0, 1, 0)
+DarkOverlay.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
+DarkOverlay.BackgroundTransparency = 1
+DarkOverlay.BorderSizePixel        = 0
+DarkOverlay.ZIndex                 = 3
+DarkOverlay.Parent                 = BlackBG
+
+local starSize = (IsMobile and 120 or 150) * 1.15
+
+local StarImage = Instance.new("ImageLabel")
+StarImage.Name                   = "StarImage"
+StarImage.Size                   = UDim2.fromOffset(starSize, starSize)
+StarImage.AnchorPoint            = Vector2.new(1, 0)
+StarImage.Position               = UDim2.new(1, -20, 0, 20)
+StarImage.BackgroundTransparency = 1
+StarImage.Image                  = "rbxthumb://type=Asset&id=98180425331992&w=420&h=420"
+StarImage.ImageColor3            = Color3.new(1, 1, 1)
+StarImage.ImageTransparency      = 1
+StarImage.ZIndex                 = 4
+StarImage.Parent                 = BlackBG
+
+local starCorner = Instance.new("UICorner")
+starCorner.CornerRadius = UDim.new(0.5, 0)
+starCorner.Parent       = StarImage
+
+local starStroke = Instance.new("UIStroke")
+starStroke.Color           = Color3.fromRGB(200, 200, 200)
+starStroke.Thickness       = IsMobile and 2.5 or 3
+starStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+starStroke.Transparency    = 1
+starStroke.Parent          = StarImage
+
+local starRotationSpeed = Instance.new("NumberValue")
+starRotationSpeed.Value  = 2.7
+starRotationSpeed.Parent = ScreenGui
+
+RunService.Heartbeat:Connect(function()
+    if StarImage and StarImage.Parent then
+        StarImage.Rotation = (StarImage.Rotation + starRotationSpeed.Value) % 360
     end
-end)()
+end)
 
-local isExiting = false
-local menuOpen = false
+local starOriginalPosition = UDim2.new(1, -20, 0, 20)
+local infoOpenPos          = UDim2.new(1, -460, 0, 230 - starSize / 2)
 
-local function stopSound()
-    pcall(function()
-        if soundInstance then
-            soundInstance:Stop()
-            soundInstance:Destroy()
-            soundInstance = nil
+local starAnimBusy = false
+
+local function AnimateStar(target)
+    if starAnimBusy then return end
+    starAnimBusy = true
+    task.spawn(function()
+        local targetPos = (target == "menu") and infoOpenPos or starOriginalPosition
+        local isReturn = (target == "home")
+
+        local fadeOutTime = isReturn and 0.9 or 0.18
+        local fadeInTime  = isReturn and 1.0 or 0.22
+
+        local fadeOutInfo = TweenInfo.new(fadeOutTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local t1 = TweenService:Create(StarImage,  fadeOutInfo, { ImageTransparency = 1 })
+        local t2 = TweenService:Create(starStroke, fadeOutInfo, { Transparency      = 1 })
+        t1:Play(); t2:Play()
+        t1.Completed:Wait()
+
+        StarImage.Position = targetPos
+
+        local fadeInInfo = TweenInfo.new(fadeInTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local t3 = TweenService:Create(StarImage,  fadeInInfo, { ImageTransparency = 0 })
+        local t4 = TweenService:Create(starStroke, fadeInInfo, { Transparency      = 0 })
+        t3:Play(); t4:Play()
+        t3.Completed:Wait()
+
+        starAnimBusy = false
+    end)
+end
+
+local BlurEffect = Instance.new("BlurEffect")
+BlurEffect.Size   = 0
+BlurEffect.Parent = camera
+
+local rotatingBorders = {}
+local function AddRotatingBorder(target, thickness, speed)
+    if target:FindFirstChildOfClass("UIStroke") then return end
+    thickness = thickness or 1.5
+    speed     = speed or 90
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness       = thickness
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Color           = Color3.new(1, 1, 1)
+    stroke.Parent          = target
+
+    local grad = Instance.new("UIGradient")
+    grad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,    Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.45, Color3.fromRGB(160, 160, 160)),
+        ColorSequenceKeypoint.new(1,    Color3.fromRGB(30,  30,  30)),
+    })
+    grad.Parent = stroke
+
+    table.insert(rotatingBorders, {grad = grad, speed = speed})
+    return stroke
+end
+
+RunService.Heartbeat:Connect(function(dt)
+    for _, b in ipairs(rotatingBorders) do
+        if b.grad and b.grad.Parent then
+            b.grad.Rotation = (b.grad.Rotation + b.speed * dt) % 360
         end
-        local sounds = game:GetService("SoundService"):GetChildren()
-        for _, sound in ipairs(sounds) do
-            if sound:IsA("Sound") then
-                sound:Stop()
-                sound:Destroy()
+    end
+end)
+
+local MainScreen = Instance.new("Frame")
+MainScreen.Size                   = UDim2.new(1, 0, 1, 0)
+MainScreen.BackgroundTransparency = 1
+MainScreen.ZIndex                 = 5
+MainScreen.Parent                 = BlackBG
+
+local LogoFrame = Instance.new("Frame")
+LogoFrame.Size                   = UDim2.fromOffset(640, 130)
+LogoFrame.Position               = UDim2.new(0.5, -460, 0.08, 0)
+LogoFrame.BackgroundTransparency = 1
+LogoFrame.ZIndex                 = 5
+LogoFrame.Parent                 = MainScreen
+
+local LogoTitle = Instance.new("TextLabel")
+LogoTitle.Text             = "Zenix dark joker"
+LogoTitle.Font             = Enum.Font.SourceSansBold
+LogoTitle.TextSize         = 68
+LogoTitle.TextColor3       = Color3.fromRGB(255, 255, 255)
+LogoTitle.BackgroundTransparency = 1
+LogoTitle.Size             = UDim2.fromOffset(550, 85)
+LogoTitle.Position         = UDim2.fromOffset(0, 0)
+LogoTitle.TextXAlignment   = Enum.TextXAlignment.Left
+LogoTitle.TextTransparency = 1
+LogoTitle.RichText         = true
+LogoTitle.ZIndex           = 6
+LogoTitle.Parent           = LogoFrame
+
+local titleStroke = Instance.new("UIStroke", LogoTitle)
+titleStroke.Color           = Color3.fromRGB(80, 80, 80)
+titleStroke.Thickness       = 2.5
+titleStroke.Transparency    = 0.3
+titleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+
+local titleGrad = Instance.new("UIGradient", LogoTitle)
+titleGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,    Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(0.55, Color3.fromRGB(190, 190, 190)),
+    ColorSequenceKeypoint.new(1,    Color3.fromRGB(80,  80,  80)),
+})
+titleGrad.Rotation = 95
+
+local playerDisplayName = Players.LocalPlayer.DisplayName
+if not playerDisplayName or playerDisplayName == "" then
+    playerDisplayName = Players.LocalPlayer.Name
+end
+
+local SubLabel = Instance.new("TextLabel")
+SubLabel.Text             = "WELCOME || " .. playerDisplayName
+SubLabel.Font             = Enum.Font.SourceSansBold
+SubLabel.TextSize         = 20
+SubLabel.TextColor3       = Color3.fromRGB(200, 200, 200)
+SubLabel.BackgroundTransparency = 1
+SubLabel.Size             = UDim2.fromOffset(450, 28)
+SubLabel.Position         = UDim2.fromOffset(2, 88)
+SubLabel.TextXAlignment   = Enum.TextXAlignment.Left
+SubLabel.TextTransparency = 1
+SubLabel.ZIndex           = 6
+SubLabel.Parent           = LogoFrame
+
+local GlowLine = Instance.new("Frame")
+GlowLine.Size                   = UDim2.fromOffset(0, 1.5)
+GlowLine.Position               = UDim2.fromOffset(0, 80)
+GlowLine.AnchorPoint            = Vector2.new(0, 0)
+GlowLine.BackgroundColor3       = Color3.fromRGB(200, 200, 200)
+GlowLine.BackgroundTransparency = 0
+GlowLine.BorderSizePixel        = 0
+GlowLine.ZIndex                 = 6
+GlowLine.Parent                 = LogoFrame
+Instance.new("UICorner", GlowLine).CornerRadius = UDim.new(0, 1)
+
+local ButtonsHolder = Instance.new("Frame")
+ButtonsHolder.Size                   = UDim2.fromOffset(440, 60)
+ButtonsHolder.Position               = UDim2.new(0.5, -220, 1, -80)
+ButtonsHolder.BackgroundTransparency = 1
+ButtonsHolder.ZIndex                 = 5
+ButtonsHolder.Parent                 = MainScreen
+
+local btnLayout = Instance.new("UIListLayout")
+btnLayout.FillDirection       = Enum.FillDirection.Horizontal
+btnLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+btnLayout.VerticalAlignment   = Enum.VerticalAlignment.Center
+btnLayout.Padding             = UDim.new(0, 30)
+btnLayout.Parent              = ButtonsHolder
+
+local function MakeButton(text)
+    local btn = Instance.new("TextButton")
+    btn.Text                   = text
+    btn.Font                   = Enum.Font.SourceSansBold
+    btn.TextSize               = 18
+    btn.TextColor3             = Color3.fromRGB(255, 255, 255)
+    btn.BackgroundColor3       = Color3.fromRGB(18, 18, 18)
+    btn.BackgroundTransparency = 0.15
+    btn.AutoButtonColor        = false
+    btn.Size                   = UDim2.fromOffset(190, 42)
+    btn.TextTransparency       = 1
+    btn.ZIndex                 = 6
+    btn.Parent                 = ButtonsHolder
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 12)
+
+    AddRotatingBorder(btn, 1.4, 100)
+
+    btn.MouseButton1Down:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
+            BackgroundColor3       = Color3.fromRGB(40, 40, 40),
+            BackgroundTransparency = 0,
+        }):Play()
+    end)
+    btn.MouseButton1Up:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {
+            BackgroundColor3       = Color3.fromRGB(18, 18, 18),
+            BackgroundTransparency = 0.15,
+        }):Play()
+    end)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), { BackgroundTransparency = 0.05 }):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(18, 18, 18),
+            BackgroundTransparency = 0.15
+        }):Play()
+    end)
+    return btn
+end
+
+local PlayBtn = MakeButton("العب")
+local InfoBtn = MakeButton("© الحقوق")
+
+local function MakeBackBtn(parent, zidx)
+    local btn = Instance.new("TextButton")
+    btn.Text                   = "رجوع ←"
+    btn.Font                   = Enum.Font.SourceSansBold
+    btn.TextSize               = 14
+    btn.TextColor3             = Color3.fromRGB(220, 220, 220)
+    btn.BackgroundColor3       = Color3.fromRGB(15, 15, 15)
+    btn.BackgroundTransparency = 0.2
+    btn.AutoButtonColor        = false
+    btn.Size                   = UDim2.fromOffset(110, 36)
+    btn.ZIndex                 = zidx or 10
+    btn.Parent                 = parent
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 9)
+    AddRotatingBorder(btn, 1.2, 80)
+
+    btn.MouseButton1Down:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.1), {
+            BackgroundColor3       = Color3.fromRGB(40, 40, 40),
+            BackgroundTransparency = 0,
+        }):Play()
+    end)
+    btn.MouseButton1Up:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {
+            BackgroundColor3       = Color3.fromRGB(15, 15, 15),
+            BackgroundTransparency = 0.2,
+        }):Play()
+    end)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundTransparency = 0.08 }):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(15, 15, 15),
+            BackgroundTransparency = 0.2
+        }):Play()
+    end)
+    return btn
+end
+
+local InfoScreen = Instance.new("Frame")
+InfoScreen.Size                   = UDim2.new(1, 0, 1, 0)
+InfoScreen.BackgroundTransparency = 1
+InfoScreen.Visible                = false
+InfoScreen.ZIndex                 = 7
+InfoScreen.Parent                 = BlackBG
+
+local InfoPanel = Instance.new("Frame")
+InfoPanel.Size                   = UDim2.fromOffset(420, 340)
+InfoPanel.Position               = UDim2.new(1, -440, 0, 60)
+InfoPanel.BackgroundColor3       = Color3.fromRGB(8, 8, 8)
+InfoPanel.BackgroundTransparency = 0.04
+InfoPanel.BorderSizePixel        = 0
+InfoPanel.ZIndex                 = 8
+InfoPanel.Parent                 = InfoScreen
+Instance.new("UICorner", InfoPanel).CornerRadius = UDim.new(0, 18)
+AddRotatingBorder(InfoPanel, 1.6, 70)
+
+local InfoPanelHeader = Instance.new("Frame")
+InfoPanelHeader.Size                   = UDim2.new(1, -24, 0, 48)
+InfoPanelHeader.Position               = UDim2.fromOffset(12, 12)
+InfoPanelHeader.BackgroundTransparency = 1
+InfoPanelHeader.ZIndex                 = 9
+InfoPanelHeader.Parent                 = InfoPanel
+do
+    local hl = Instance.new("UIListLayout", InfoPanelHeader)
+    hl.FillDirection       = Enum.FillDirection.Horizontal
+    hl.VerticalAlignment   = Enum.VerticalAlignment.Center
+    hl.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    hl.Padding             = UDim.new(0, 10)
+end
+
+local HeaderTitle = Instance.new("TextLabel")
+HeaderTitle.Text                   = "Zenix dark joker"
+HeaderTitle.Font                   = Enum.Font.SourceSansBold
+HeaderTitle.TextSize               = 20
+HeaderTitle.TextColor3             = Color3.fromRGB(255, 255, 255)
+HeaderTitle.BackgroundTransparency = 1
+HeaderTitle.AutomaticSize          = Enum.AutomaticSize.X
+HeaderTitle.Size                   = UDim2.new(0, 0, 1, 0)
+HeaderTitle.TextXAlignment         = Enum.TextXAlignment.Left
+HeaderTitle.ZIndex                 = 10
+HeaderTitle.Parent                 = InfoPanelHeader
+
+local headerGrad = Instance.new("UIGradient", HeaderTitle)
+headerGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(180, 180, 180)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(80,  80,  80)),
+})
+headerGrad.Rotation = 90
+
+local InfoBackBtn = MakeBackBtn(InfoPanelHeader, 11)
+
+local Divider = Instance.new("Frame")
+Divider.Size                   = UDim2.new(1, -24, 0, 1)
+Divider.Position               = UDim2.fromOffset(12, 66)
+Divider.BackgroundColor3       = Color3.fromRGB(100, 100, 100)
+Divider.BackgroundTransparency = 0.4
+Divider.BorderSizePixel        = 0
+Divider.ZIndex                 = 9
+Divider.Parent                 = InfoPanel
+
+local InfoScroll = Instance.new("ScrollingFrame")
+InfoScroll.Size                    = UDim2.new(1, -24, 1, -84)
+InfoScroll.Position                = UDim2.fromOffset(12, 76)
+InfoScroll.BackgroundTransparency  = 1
+InfoScroll.BorderSizePixel         = 0
+InfoScroll.ScrollBarThickness      = 3
+InfoScroll.ScrollBarImageColor3    = Color3.fromRGB(100, 100, 100)
+InfoScroll.CanvasSize              = UDim2.new(0, 0, 0, 0)
+InfoScroll.AutomaticCanvasSize     = Enum.AutomaticSize.Y
+InfoScroll.ScrollingDirection      = Enum.ScrollingDirection.Y
+InfoScroll.ZIndex                  = 9
+InfoScroll.Parent                  = InfoPanel
+
+local InfoContent = Instance.new("Frame")
+InfoContent.Size                   = UDim2.new(1, 0, 0, 0)
+InfoContent.AutomaticSize          = Enum.AutomaticSize.Y
+InfoContent.BackgroundTransparency = 1
+InfoContent.ZIndex                 = 9
+InfoContent.Parent                 = InfoScroll
+
+local contentLayout = Instance.new("UIListLayout")
+contentLayout.Padding   = UDim.new(0, 8)
+contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+contentLayout.Parent    = InfoContent
+
+Instance.new("UIPadding", InfoContent).PaddingBottom = UDim.new(0, 14)
+
+local function AddInfoRow(_, label, value)
+    local row = Instance.new("Frame")
+    row.Size                   = UDim2.new(1, 0, 0, 42)
+    row.BackgroundColor3       = Color3.fromRGB(18, 18, 18)
+    row.BackgroundTransparency = 0.3
+    row.BorderSizePixel        = 0
+    row.ZIndex                 = 10
+    row.Parent                 = InfoContent
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 10)
+    AddRotatingBorder(row, 1, 60)
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Text                   = label
+    lbl.Font                   = Enum.Font.SourceSansBold
+    lbl.TextSize               = 11
+    lbl.TextColor3             = Color3.fromRGB(140, 140, 140)
+    lbl.BackgroundTransparency = 1
+    lbl.Size                   = UDim2.new(0.5, 0, 1, 0)
+    lbl.Position               = UDim2.fromOffset(14, 0)
+    lbl.TextXAlignment         = Enum.TextXAlignment.Left
+    lbl.ZIndex                 = 11
+    lbl.Parent                 = row
+
+    local val = Instance.new("TextLabel")
+    val.Text                   = value
+    val.Font                   = Enum.Font.SourceSansBold
+    val.TextSize               = 12
+    val.TextColor3             = Color3.fromRGB(255, 255, 255)
+    val.BackgroundTransparency = 1
+    val.Size                   = UDim2.new(0.5, -14, 1, 0)
+    val.Position               = UDim2.new(0.5, 0, 0, 0)
+    val.TextXAlignment         = Enum.TextXAlignment.Right
+    val.ZIndex                 = 11
+    val.Parent                 = row
+end
+
+local function AddRightsRow(text, isHeader)
+    local row = Instance.new("Frame")
+    row.Size                   = UDim2.new(1, 0, 0, 0)
+    row.AutomaticSize          = Enum.AutomaticSize.Y
+    row.BackgroundColor3       = Color3.fromRGB(18, 18, 18)
+    row.BackgroundTransparency = 0.3
+    row.BorderSizePixel        = 0
+    row.ZIndex                 = 10
+    row.Parent                 = InfoContent
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 10)
+    AddRotatingBorder(row, 1, 55)
+
+    local dot = Instance.new("Frame")
+    dot.Size             = UDim2.fromOffset(7, 7)
+    dot.Position         = UDim2.new(0, 14, 0, 14)
+    dot.BackgroundColor3 = isHeader and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 180)
+    dot.BorderSizePixel  = 0
+    dot.ZIndex           = 11
+    dot.Parent           = row
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+
+    local label = Instance.new("TextLabel")
+    label.Text                   = text
+    label.Font                   = isHeader and Enum.Font.SourceSansBold or Enum.Font.Gotham
+    label.TextSize               = isHeader and 14 or 12
+    label.TextColor3             = isHeader and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(230, 230, 230)
+    label.BackgroundTransparency = 1
+    label.Size                   = UDim2.new(1, -56, 0, 0)
+    label.AutomaticSize          = Enum.AutomaticSize.Y
+    label.Position               = UDim2.fromOffset(34, 0)
+    label.TextXAlignment         = Enum.TextXAlignment.Right
+    label.TextWrapped            = true
+    label.ZIndex                 = 11
+    label.Parent                 = row
+
+    local pad = Instance.new("UIPadding", label)
+    pad.PaddingTop    = UDim.new(0, 10)
+    pad.PaddingBottom = UDim.new(0, 10)
+    pad.PaddingRight  = UDim.new(0, 10)
+end
+
+AddInfoRow("", "الاسم",    "Zenix")
+AddInfoRow("", "اللعبة",   "Brookhaven RP")
+AddInfoRow("", "الحماية",  "Anti-Spy نشط")
+
+local devTitleFrame = Instance.new("Frame")
+devTitleFrame.Size                   = UDim2.new(1, 0, 0, 28)
+devTitleFrame.BackgroundTransparency = 1
+devTitleFrame.ZIndex                 = 10
+devTitleFrame.Parent                 = InfoContent
+
+local devTitleLbl = Instance.new("TextLabel")
+devTitleLbl.Text                   = "المطور"
+devTitleLbl.Font                   = Enum.Font.SourceSansBold
+devTitleLbl.TextSize               = 13
+devTitleLbl.TextColor3             = Color3.fromRGB(160, 160, 160)
+devTitleLbl.BackgroundTransparency = 1
+devTitleLbl.Size                   = UDim2.new(1, 0, 1, 0)
+devTitleLbl.Position               = UDim2.fromOffset(4, 0)
+devTitleLbl.TextXAlignment         = Enum.TextXAlignment.Left
+devTitleLbl.ZIndex                 = 11
+devTitleLbl.Parent                 = devTitleFrame
+
+local devNames = {"Zenix"}
+for _, name in ipairs(devNames) do
+    local row = Instance.new("Frame")
+    row.Size                   = UDim2.new(1, 0, 0, 42)
+    row.BackgroundColor3       = Color3.fromRGB(18, 18, 18)
+    row.BackgroundTransparency = 0.3
+    row.BorderSizePixel        = 0
+    row.ZIndex                 = 10
+    row.Parent                 = InfoContent
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 10)
+    AddRotatingBorder(row, 1, 55)
+
+    local dot = Instance.new("Frame")
+    dot.Size             = UDim2.fromOffset(7, 7)
+    dot.Position         = UDim2.new(0, 14, 0.5, -3)
+    dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    dot.BorderSizePixel  = 0
+    dot.ZIndex           = 11
+    dot.Parent           = row
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+
+    local label = Instance.new("TextLabel")
+    label.Text                   = name
+    label.Font                   = Enum.Font.SourceSansBold
+    label.TextSize               = 14
+    label.TextColor3             = Color3.fromRGB(240, 240, 240)
+    label.BackgroundTransparency = 1
+    label.Size                   = UDim2.new(1, -40, 1, 0)
+    label.Position               = UDim2.fromOffset(32, 0)
+    label.TextXAlignment         = Enum.TextXAlignment.Left
+    label.ZIndex                 = 11
+    label.Parent                 = row
+end
+
+AddRightsRow("معلومات ZENIX DARK JOKER", true)
+AddRightsRow("جميع الحقوق لسكربتات Zenix ومطوره زين")
+AddRightsRow("تم صناعة السكربت في خلال سنة وانتهى في عام 2026")
+AddRightsRow("جميع السكربتات صنعت يدوياً وبأفكار شخصية وأفكار أجانب")
+AddRightsRow("نحاول نقدم أحسن شي يرضي العميل ولا يمل من اللعبة")
+AddRightsRow("عدد مطورين السكربت: واحد (زين)")
+AddRightsRow("المشرف: (joo)")
+AddRightsRow("شكر خاص لمستعملين سكربتات Zenix، شكرا.")
+AddRightsRow("تم اخذ هيكل الانترو من فيلمورث حقوقه")
+
+local function AntiSpy()
+    local player = Players.LocalPlayer
+    local PlayerGui = player:WaitForChild("PlayerGui")
+
+    local blacklistedGUIs = {
+        ["SimpleSpy2"] = true, ["SimpleSpy1"] = true, ["SimpleSpy"] = true,
+        ["Spy"] = true, ["Simple_Spy"] = true, ["Simple-Spy"] = true,
+        ["RemoteSpy"] = true, ["Remote_Spy"] = true, ["Remote-Spy"] = true,
+        ["RemotesSpy"] = true, ["Remotes_Spy"] = true, ["Remotes-Spy"] = true,
+        ["Remotes"] = true, ["Remote"] = true,
+    }
+    for i = 3, 20 do
+        blacklistedGUIs["SimpleSpy"..i] = true
+        blacklistedGUIs["Spy"..i]       = true
+    end
+
+    local function checkGui(child)
+        if blacklistedGUIs[child.Name] then
+            Players.LocalPlayer:Kick("Anti-Spy: Removed spy GUI")
+        end
+    end
+
+    for _, gui in pairs(CoreGui:GetChildren())   do checkGui(gui) end
+    for _, gui in pairs(PlayerGui:GetChildren()) do checkGui(gui) end
+    CoreGui.ChildAdded:Connect(checkGui)
+    PlayerGui.ChildAdded:Connect(checkGui)
+end
+
+local carouselRunning = false
+local currentIndex = 1
+local TRANS_TIME = 0.8
+
+local function ShowImage(index)
+    local im = imageLabels[index]
+    if not im or not im.Parent then return end
+    im.ZIndex = 2
+    TweenService:Create(im, TweenInfo.new(TRANS_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        ImageTransparency = 0
+    }):Play()
+
+    local data = BG_IDS[index]
+    local targetTrans = data.dark and 0.8 or 1
+    TweenService:Create(BgDarkOverlay, TweenInfo.new(TRANS_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundTransparency = targetTrans
+    }):Play()
+end
+
+local function HideImage(index, isFinalReset)
+    local im = imageLabels[index]
+    if not im or not im.Parent then return end
+    TweenService:Create(im, TweenInfo.new(TRANS_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        ImageTransparency = 1
+    }):Play()
+
+    if isFinalReset then
+        task.delay(TRANS_TIME, function()
+            if im and im.Parent then
+                im.ZIndex = 1
             end
+        end)
+    end
+end
+
+local function TransitionToNext()
+    if not carouselRunning then return end
+    local prevIndex = currentIndex
+    currentIndex = currentIndex + 1
+    if currentIndex > #BG_IDS then currentIndex = 1 end
+
+    ShowImage(currentIndex)
+    HideImage(prevIndex, true)
+
+    task.delay(TRANS_TIME, function()
+        local cur = imageLabels[currentIndex]
+        if cur and cur.Parent then
+            cur.ZIndex = 1
         end
     end)
 end
 
-local function breakButtons()
-    local directions = {
-        {X = -300, Y = -200, Rot = -45},
-        {X = 300, Y = -180, Rot = 45},
-        {X = -250, Y = 250, Rot = 30},
-        {X = 250, Y = 230, Rot = -30}
-    }
-    for i, btn in ipairs(buttons) do
-        local dir = directions[i % #directions + 1]
-        local xOff = (math.random() * 200 - 100) + dir.X
-        local yOff = (math.random() * 200 - 100) + dir.Y
-        local rot = dir.Rot + (math.random() * 40 - 20)
-        TweenService:Create(btn, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Position = UDim2.new(btn.Position.X.Scale, btn.Position.X.Offset + xOff, btn.Position.Y.Scale, btn.Position.Y.Offset + yOff),
-            Rotation = rot,
-            BackgroundTransparency = 1,
-            TextTransparency = 1
-        }):Play()
-        TweenService:Create(btn, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Size = UDim2.new(0.1, 0, 0.1, 0)
-        }):Play()
-    end
-    task.wait(0.3)
-    for _, btn in ipairs(buttons) do
-        btn.Visible = false
-    end
+local function StartCarousel()
+    if carouselRunning then return end
+    carouselRunning = true
+
+    task.spawn(function()
+        while carouselRunning do
+            task.wait(5)
+            if not carouselRunning then break end
+            TransitionToNext()
+        end
+    end)
 end
 
-local function exitWithZoom(instant)
-    if isExiting then return end
-    isExiting = true
-    ClickSound:Play()
-    stopSound()
+local function LoadScriptAndExit(url, scriptType)
+    carouselRunning = false
+    StopAndDeleteMusic()
+    AntiSpy()
 
-    if instant then
-        pcall(function()
-            StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
-        end)
-        IntroGui:Destroy()
-        return
-    end
+    MainScreen.Visible = false
+    InfoScreen.Visible = false
 
-    breakButtons()
+    StarImage.ZIndex = 100
 
-    local targetAnchor = Vector2.new(0.5, 0.5)
-    local targetPos = UDim2.new(0.5, 0, 0.5, 0)
-
-    local moveTween = TweenService:Create(CenterImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        AnchorPoint = targetAnchor,
-        Position = targetPos
+    local moveTween = TweenService:Create(StarImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position    = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
     })
-
     moveTween:Play()
     moveTween.Completed:Wait()
 
-    TweenService:Create(ButtonContainer, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-        Position = UDim2.new(0.5, 0, 1.2, 0)
-    }):Play()
-
-    TweenService:Create(rotationSpeedVal, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+    TweenService:Create(starRotationSpeed, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
         Value = 18
     }):Play()
 
-    local scaleTween = TweenService:Create(CenterImage, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+    TweenService:Create(StarImage, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
         Size = UDim2.new(0, 2000, 0, 2000)
-    })
-    scaleTween:Play()
+    }):Play()
 
     task.delay(0.6, function()
         local fadeTime = 0.6
-        local fadeTweenInfo = TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local fadeInfo = TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
-        TweenService:Create(CenterImage, fadeTweenInfo, {ImageTransparency = 1}):Play()
-        TweenService:Create(Background, fadeTweenInfo, {BackgroundTransparency = 1}):Play()
-        TweenService:Create(DarkOverlay, fadeTweenInfo, {BackgroundTransparency = 1}):Play()
+        TweenService:Create(StarImage,  fadeInfo, { ImageTransparency  = 1 }):Play()
+        TweenService:Create(starStroke, fadeInfo, { Transparency       = 1 }):Play()
+
+        for _, im in ipairs(imageLabels) do
+            if im and im.Parent then
+                pcall(function()
+                    TweenService:Create(im, fadeInfo, { ImageTransparency = 1 }):Play()
+                end)
+            end
+        end
+
+        TweenService:Create(BgDarkOverlay, fadeInfo, { BackgroundTransparency = 1 }):Play()
+        TweenService:Create(DarkOverlay,   fadeInfo, { BackgroundTransparency = 1 }):Play()
+        TweenService:Create(SolidBlackBG,  fadeInfo, { BackgroundTransparency = 1 }):Play()
+
+        TweenService:Create(BlurEffect, TweenInfo.new(0.8, Enum.EasingStyle.Quad), { Size = 40 }):Play()
 
         task.delay(fadeTime, function()
-            pcall(function()
-                StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
+            pcall(function() BlurEffect:Destroy() end)
+            pcall(function() ScreenGui:Destroy() end)
+
+            task.spawn(function()
+                if scriptType == "encrypt" then
+                    loadstring(game:HttpGet(url))("9012111915890")
+                else
+                    loadstring(game:HttpGet(url))()
+                end
             end)
-            IntroGui:Destroy()
         end)
     end)
 end
 
-local DevMenu = Instance.new("Frame")
-DevMenu.Name = "DevMenu"
-DevMenu.Size = UDim2.new(0, IsMobile and 250 or 280, 0, IsMobile and 280 or 300)
-DevMenu.AnchorPoint = Vector2.new(0, 0.5)
+local function ShowInfoScreen()
+    MainScreen.Visible = false
+    InfoScreen.Visible = true
+    InfoPanel.Position = UDim2.new(1, -410, 0, 60)
 
-local closedPosition = UDim2.new(1, IsMobile and 20 or 40, 0.5, 0)
-local openPosition = UDim2.new(1, -(IsMobile and 270 or 310), 0.5, 0)
+    TweenService:Create(InfoPanel,
+        TweenInfo.new(0.75, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        { Position = UDim2.new(1, -440, 0, 60) }
+    ):Play()
 
-DevMenu.Position = closedPosition
-DevMenu.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-DevMenu.ZIndex = 10
-DevMenu.Parent = IntroGui
+    AnimateStar("menu")
+end
 
-local DevCorner = Instance.new("UICorner")
-DevCorner.CornerRadius = UDim.new(0, IsMobile and 12 or 16)
-DevCorner.Parent = DevMenu
+local function HideInfoScreen()
+    TweenService:Create(InfoPanel, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        { Position = UDim2.new(1, -410, 0, 60) }):Play()
 
-local DevStroke = Instance.new("UIStroke")
-DevStroke.Color = Color3.fromRGB(255, 255, 255)
-DevStroke.Thickness = IsMobile and 1.5 or 2
-DevStroke.Parent = DevMenu
+    AnimateStar("home")
 
-local NeonGradient = Instance.new("UIGradient")
-NeonGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-    ColorSequenceKeypoint.new(0.25, Color3.fromRGB(150, 150, 150)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-    ColorSequenceKeypoint.new(0.75, Color3.fromRGB(150, 150, 150)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-})
-NeonGradient.Parent = DevStroke
+    task.delay(0.3, function()
+        InfoScreen.Visible = false
+        MainScreen.Visible = true
 
-coroutine.wrap(function()
-    while IntroGui and IntroGui.Parent do
-        NeonGradient.Rotation = (NeonGradient.Rotation + 2) % 360
-        task.wait(0.01)
-    end
-end)()
+        LogoTitle.TextTransparency     = 1
+        SubLabel.TextTransparency      = 1
+        GlowLine.Size                  = UDim2.fromOffset(0, 1.5)
+        PlayBtn.TextTransparency       = 1
+        InfoBtn.TextTransparency       = 1
+        PlayBtn.BackgroundTransparency = 1
+        InfoBtn.BackgroundTransparency = 1
 
-local DevTitle = Instance.new("TextLabel")
-DevTitle.Size = UDim2.new(1, 0, 0, IsMobile and 35 or 40)
-DevTitle.BackgroundTransparency = 1
-DevTitle.RichText = true
-DevTitle.Text = "حقوق ZENIX DARK JOKER"
-DevTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-DevTitle.Font = Enum.Font.GothamBold
-DevTitle.TextSize = IsMobile and 14 or 16
-DevTitle.ZIndex = 11
-DevTitle.Parent = DevMenu
-
-local Divider2 = Instance.new("Frame")
-Divider2.Size = UDim2.new(0.9, 0, 0, 1.5)
-Divider2.Position = UDim2.new(0.05, 0, 0, IsMobile and 33 or 38)
-Divider2.BorderSizePixel = 0
-Divider2.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-Divider2.ZIndex = 11
-Divider2.Parent = DevMenu
-
-local DevInfo = Instance.new("TextLabel")
-DevInfo.Size = UDim2.new(1, -(IsMobile and 15 or 20), 1, -(IsMobile and 45 or 52))
-DevInfo.Position = UDim2.new(0, (IsMobile and 8 or 10), 0, IsMobile and 38 or 42)
-DevInfo.BackgroundTransparency = 1
-DevInfo.RichText = true
-DevInfo.Text = [[<font color="rgb(255,255,255)">جميع الحقوق لسكربتات Zenix ومطوره زيـن</font>
-
-<font color="rgb(180,180,180)">تم صناعة السكربت في خلال سنة وانتهى في عام 2026</font>
-
-<font color="rgb(200,200,200)">جميع السكربتات صنعت يدوياً وبأفكار شخصية وأفكار أجانب</font>
-
-<font color="rgb(255,255,255)">نحاول نقدم أحسن شي يرضي العميل ولا يمل من اللعبة</font>
-
-<font color="rgb(255,255,255)">معلومات ZENIX DARK JOKER</font>
-
-<font color="rgb(200,200,200)">عدد مطورين السكربت: واحد (زين)</font>
-<font color="rgb(200,200,200)">المشرف: (joo)</font>
-
-<font color="rgb(200,200,200)">شكر خاص لمستعملين سكربتات Zenix، شكرا.</font>]]
-DevInfo.Font = Enum.Font.Gotham
-DevInfo.TextSize = IsMobile and 11 or 13
-DevInfo.TextWrapped = true
-DevInfo.TextXAlignment = Enum.TextXAlignment.Center
-DevInfo.TextYAlignment = Enum.TextYAlignment.Top
-DevInfo.ZIndex = 11
-DevInfo.Parent = DevMenu
-
-local CloseDev = Instance.new("TextButton")
-CloseDev.Size = UDim2.new(0, IsMobile and 22 or 26, 0, IsMobile and 22 or 26)
-CloseDev.Position = UDim2.new(1, -(IsMobile and 30 or 35), 0, IsMobile and 8 or 10)
-CloseDev.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-CloseDev.Text = "✕"
-CloseDev.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseDev.Font = Enum.Font.GothamBold
-CloseDev.TextSize = IsMobile and 11 or 13
-CloseDev.AutoButtonColor = false
-CloseDev.ZIndex = 11
-CloseDev.Parent = DevMenu
-
-if IsMobile then
-    CloseDev.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            TweenService:Create(CloseDev, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
-        end
-    end)
-    CloseDev.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            TweenService:Create(CloseDev, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play()
-        end
+        TweenService:Create(LogoTitle, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 }):Play()
+        task.delay(0.2, function()
+            TweenService:Create(SubLabel, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 }):Play()
+        end)
+        task.delay(0.3, function()
+            TweenService:Create(GlowLine, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(440, 1.5) }):Play()
+        end)
+        task.delay(0.5, function()
+            TweenService:Create(PlayBtn, TweenInfo.new(0.85, Enum.EasingStyle.Back), {
+                TextTransparency = 0,
+                BackgroundTransparency = 0.15
+            }):Play()
+        end)
+        task.delay(0.7, function()
+            TweenService:Create(InfoBtn, TweenInfo.new(0.85, Enum.EasingStyle.Back), {
+                TextTransparency = 0,
+                BackgroundTransparency = 0.15
+            }):Play()
+        end)
     end)
 end
 
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0.5, 0)
-CloseCorner.Parent = CloseDev
+InfoBackBtn.Activated:Connect(HideInfoScreen)
+InfoBtn.Activated:Connect(ShowInfoScreen)
 
-local CloseStroke = Instance.new("UIStroke")
-CloseStroke.Color = Color3.fromRGB(255, 255, 255)
-CloseStroke.Thickness = 1.5
-CloseStroke.Parent = CloseDev
+PlayBtn.Activated:Connect(function()
+    LoadScriptAndExit("https://encrypt-x.pages.dev/scripts?Id=9012111915890", "encrypt")
+end)
 
-if not IsMobile then
-    CloseDev.MouseEnter:Connect(function()
-        HoverSound:Play()
-        TweenService:Create(CloseStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(200, 200, 200)}):Play()
-        TweenService:Create(CloseDev, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
+task.delay(2, function()
+    local firstData = BG_IDS[1]
+    imageLabels[1].ZIndex = 2
+
+    TweenService:Create(imageLabels[1], TweenInfo.new(1.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { ImageTransparency = 0 }):Play()
+    TweenService:Create(BgDarkOverlay,  TweenInfo.new(1.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = firstData.dark and 0.8 or 1 }):Play()
+    TweenService:Create(DarkOverlay,    TweenInfo.new(0.5), { BackgroundTransparency = 0.6 }):Play()
+    TweenService:Create(StarImage,      TweenInfo.new(1.4), { ImageTransparency = 0 }):Play()
+    TweenService:Create(starStroke,     TweenInfo.new(1.4), { Transparency = 0 }):Play()
+
+    task.delay(1.4, function()
+        imageLabels[1].ZIndex = 1
     end)
-    CloseDev.MouseLeave:Connect(function()
-        TweenService:Create(CloseStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(255, 255, 255)}):Play()
-        TweenService:Create(CloseDev, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play()
+
+    LogoFrame.Position = UDim2.new(0.5, -460, -0.2, 0)
+    TweenService:Create(LogoFrame,
+        TweenInfo.new(1.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        { Position = UDim2.new(0.5, -460, 0.08, 0) }
+    ):Play()
+
+    task.delay(0.7, function()
+        TweenService:Create(LogoTitle, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 }):Play()
     end)
-end
-
-local function toggleMenu(open)
-    if isExiting then return end
-    menuOpen = open
-    local targetPosition = open and openPosition or closedPosition
-
-    local easingStyle = open and Enum.EasingStyle.Back or Enum.EasingStyle.Quad
-    local easingDirection = open and Enum.EasingDirection.Out or Enum.EasingDirection.In
-
-    local tweenInfo = TweenInfo.new(0.6, easingStyle, easingDirection)
-    local menuTween = TweenService:Create(DevMenu, tweenInfo, {Position = targetPosition})
-    menuTween:Play()
-
-    if open then
-        local imageTarget = UDim2.new(0.5, -(IsMobile and 270 or 310) - 30, 0.5, 0)
-        local imageAnchor = Vector2.new(0.5, 0.5)
-        TweenService:Create(CenterImage, TweenInfo.new(0.6, easingStyle, easingDirection), {
-            Position = imageTarget,
-            AnchorPoint = imageAnchor
+    task.delay(1.2, function()
+        TweenService:Create(SubLabel, TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 }):Play()
+        TweenService:Create(GlowLine, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(440, 1.5) }):Play()
+    end)
+    task.delay(1.8, function()
+        TweenService:Create(PlayBtn, TweenInfo.new(1.0, Enum.EasingStyle.Back), {
+            BackgroundTransparency = 0.15,
+            TextTransparency = 0
         }):Play()
-    else
-        TweenService:Create(CenterImage, TweenInfo.new(0.6, easingStyle, easingDirection), {
-            Position = originalPosition,
-            AnchorPoint = originalAnchor
+    end)
+    task.delay(2.2, function()
+        TweenService:Create(InfoBtn, TweenInfo.new(1.0, Enum.EasingStyle.Back), {
+            BackgroundTransparency = 0.15,
+            TextTransparency = 0
         }):Play()
-    end
-end
-
-PlayButton.MouseButton1Click:Connect(function()
-    exitWithZoom(false)
-end)
-
-RightsButton.MouseButton1Click:Connect(function()
-    ClickSound:Play()
-    toggleMenu(not menuOpen)
-end)
-
-if IsMobile then
-    PlayButton.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            PlayButton.MouseButton1Click:Fire()
-        end
     end)
-    RightsButton.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            RightsButton.MouseButton1Click:Fire()
-        end
-    end)
-end
 
-CloseDev.MouseButton1Click:Connect(function()
-    ClickSound:Play()
-    toggleMenu(false)
+    task.delay(5, function()
+        StartCarousel()
+    end)
 end)
-
-if IsMobile then
-    CloseDev.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            CloseDev.MouseButton1Click:Fire()
-        end
-    end)
-end

@@ -6,96 +6,123 @@ local Players      = game:GetService("Players")
 local old = CoreGui:FindFirstChild("انترو Zenix")
 if old then old:Destroy() end
 
+local oldMusic = CoreGui:FindFirstChild("ZenixMusicPersist")
+if oldMusic then oldMusic:Destroy() end
+
 local camera       = workspace.CurrentCamera
 local viewportSize = camera.ViewportSize
 local UIScale      = viewportSize.Y / 450
-local IsMobile     = (viewportSize.X < 800) or (viewportSize.Y < 600)
 
-local req = (syn and syn.request) or (http and http.request) or http_request or request
-local function fetch(url)
-    if req then
-        local ok, r = pcall(req, {Url = url, Method = "GET"})
-        if ok and r and (r.StatusCode == 200 or r.StatusCode == nil) and type(r.Body) == "string" and #r.Body > 8 then
-            return r.Body
-        end
+local IsMobile = (viewportSize.X < 800) or (viewportSize.Y < 600)
+local IsPC     = not IsMobile
+
+local logoXOffset
+local logoTextSize
+local glowWidth
+
+if IsPC then
+    logoXOffset  = -270
+    logoTextSize = 65
+    glowWidth    = 418
+else
+    logoXOffset  = -460
+    logoTextSize = 68
+    glowWidth    = 440
+end
+
+local SONGS = {
+    { id = "mahdi_al_aboudi",     name = "مهدي العبودي - يا اغلى من غالي عراقي", url = "https://www.dropbox.com/scl/fi/w1ens2pi12txhcct3wszt/.mp3?rlkey=wjp3rx459hpoo4s83ay2w0jfc&st=x7jw931c&dl=1", region = "عراقي" },
+    { id = "hamo_altikha",        name = "حمو الطيخا - ياقطر الفرح مصري",       url = "https://www.dropbox.com/scl/fi/nb01hdhfoln8qjoiycr2v/.mp3?rlkey=7w77yu9uy6ol40e4sjfl8xk5m&st=t9vc93yq&dl=1", region = "مصري" },
+    { id = "hamo_almurshidi",     name = "حمو المرشدي - كوكب النسيان مصري",     url = "https://www.dropbox.com/scl/fi/812hy6d1o2zw4bjrvrctz/_-_-2026.mp3?rlkey=6k4jwtc05ztnocy8sr7cs9kp2&st=f9dgdlaq&dl=1", region = "مصري" },
+    { id = "hussam_el_rsam",      name = "يعني انا غلطان صدقني ندمان عراقي",     url = "https://www.dropbox.com/scl/fi/vkvsz6h515qpcczoz7lcn/Albumaty.Com.Hossam.El.Rsam.3esht.L7zat.mp3?rlkey=qaq3mq3qy9sxrb24x3dxjoseo&st=lwfjc1rr&dl=1", region = "عراقي" },
+    { id = "arja3_alayna",        name = "ارجع علينا عراقي",                     url = "https://www.dropbox.com/scl/fi/7s4u43tuzuer85x67j814/.mp3?rlkey=1ezjzky5imm9erttnmnlqpgaz&st=mmrc66io&dl=1", region = "عراقي" },
+    { id = "hbyna_bnt_hdryt",     name = "حبينا بنت حضريه ليبي",                url = "https://www.dropbox.com/scl/fi/b8ti0cjudqkcqjkqa875s/Albumaty.Com__bsam_abw_awad__hbyna_bnt_hdryt.mp3?rlkey=v9pdil9wa9gk47ysrfdc4u5he&st=bdnb8k03&dl=1", region = "ليبي" },
+    { id = "mgdy_alzhar",         name = "مجدي الزهار اوضه خامسه مصري",          url = "https://www.dropbox.com/scl/fi/z8n976bl81hfb1wc0zpvx/.mp3?rlkey=78b7m7t9uls8v8y5kw9k6i5u3&st=6rrnxslt&dl=1", region = "مصري" },
+    { id = "hmw_bika_bhry",       name = "حمو بيكا بحري خطر مصري",               url = "https://www.dropbox.com/scl/fi/fyi12ynjkyzriritcnvvv/.mp3?rlkey=hs3u5hq98nk5cqk8496gqu4lh&st=63optyhf&dl=1", region = "مصري" },
+    { id = "hmw_bika_kl_alnas",   name = "حمو بيكا كل الناس فكرني سعيد مصري",     url = "https://www.dropbox.com/scl/fi/zvk0c89c33h4dsheprxed/32_-_akhsam.ketir.mp3?rlkey=dp6a22zb1829bxuif5rwth00g&st=3ho1ra3y&dl=1", region = "مصري" },
+    { id = "hmw_almrshdy_tb",     name = "حمو المرشدي طب ده كلام ياطيري مصري",   url = "https://www.dropbox.com/scl/fi/atg9y21m5n8c9o6jz12fp/.mp3?rlkey=wo4zzlk3rvwhq5j67jmptatjy&st=deta9e3y&dl=1", region = "مصري" },
+    { id = "hmw_altykha_9esa",    name = "حمو الطيخا قصة المحارب والزعيم مصري",   url = "https://www.dropbox.com/scl/fi/k99a9l2shvbe8y59ubmsg/Albumaty.Com_hmw_altykha_mhrgan_almharb_walzaym.mp3?rlkey=rj1lcm5h8x1zod9vcr8l6w8e1&st=mxvprxxw&dl=1", region = "مصري" },
+    { id = "hmw_altykha_7amla",   name = "حمو الطيخا حمله وجرايا مصري",          url = "https://www.dropbox.com/scl/fi/hsxjl7uqp4lhpu03qd152/.mp3?rlkey=ar200yk4y13wiuz6r6kka79p6&st=gialc3tq&dl=1", region = "مصري" },
+    { id = "as7aby_thalathat",    name = "اصحابي ثلاثات عاملين اخوات مصري",      url = "https://www.dropbox.com/scl/fi/qq0y64831w4bcca8ru012/.mp3?rlkey=ik0nyvm740s9fypavsgqv9jts&st=stkap6w4&dl=1", region = "مصري" },
+    { id = "hmw_altykha_ja7r",    name = "حمو الطيخا جحر الافاعي خرك دراعي مصري", url = "https://www.dropbox.com/scl/fi/pyu1fw13yt2c9eh8f3k5p/_-2023.mp3?rlkey=ijn57e3qufatjprjy7assk9ig&st=1qqxli6n&dl=1", region = "مصري" },
+    { id = "mondy_rap_kitkat",    name = "موندي راب كيت كات مصري",               url = "https://www.dropbox.com/scl/fi/i41c9d4e9lejpfjxhpugi/kitkat-freestyle.mp3?rlkey=pkna7r7ty15n7dyw757qkjap3&st=frvdk26x&dl=1", region = "مصري" },
+    { id = "mody_amin_shoft",     name = "مودي امين وحلاقولو شوفت يا فرده مصري", url = "https://www.dropbox.com/scl/fi/i905xxwg96ob4z39zeffl/Albumaty.Com_mhrganat_hlkwlw_w_mwdy_amyn_-_mhrgan_shwft_ya_frdh.mp3?rlkey=590q9l66z3e5axcehswfadim5&st=35mde7v0&dl=1", region = "مصري" },
+    { id = "mody_amin_t3raf",     name = "مودي امين وحلاقولو تعرف تبوط مصري",    url = "https://www.dropbox.com/scl/fi/2j8vmv99gt9a2x7dl0bly/.mp3?rlkey=0xqc9ty6vf07jfc6tz6rwqspg&st=dl0hqf9b&dl=1", region = "مصري" },
+    { id = "habiby_makanak",      name = "حبيبي مكانك بالقلوب عراقي",            url = "https://www.dropbox.com/scl/fi/p6yfbp7glw2v61rg9er8e/.mp3?rlkey=6kn2l0nj3pebpnvfx48kvdjtq&st=tj6bv4c1&dl=1", region = "عراقي" },
+}
+
+local SONG_FOLDER     = "Sounds"
+local currentSound    = nil
+local currentSoundPath = nil
+local playToken       = 0
+
+local function KillCurrentSound()
+    local s = currentSound
+    local p = currentSoundPath
+    currentSound = nil
+    currentSoundPath = nil
+    if s then
+        pcall(function() s:Stop() end)
+        pcall(function() s:Destroy() end)
     end
-    local ok, b = pcall(game.HttpGet, game, url)
-    if ok and type(b) == "string" and #b > 8 then return b end
-    return nil
+    if p and isfile(p) then
+        pcall(function() delfile(p) end)
+    end
 end
 
-local audioSound = nil
-local audioPath  = nil
+local function PlaySongByIndex(index)
+    local song = SONGS[index]
+    if not song or not song.url then return end
 
-local function StopAndDeleteMusic()
-    pcall(function()
-        if audioSound then
-            audioSound:Stop()
-            audioSound:Destroy()
-            audioSound = nil
-        end
-        if audioPath and isfile(audioPath) then
-            delfile(audioPath)
-            audioPath = nil
-        end
-    end)
-end
+    playToken = playToken + 1
+    local myToken = playToken
 
-task.spawn(function()
-    local folder = "Sounds"
-    local fileName = tostring(os.time()) .. ".mp3"
-    local soundPath = folder .. "/" .. fileName
+    KillCurrentSound()
 
-    local assetFunc = getsynasset or getcustomasset
-    if not assetFunc then return end
-
-    pcall(function()
-        if not isfolder(folder) then makefolder(folder) end
-    end)
-
-    local url = "https://www.dropbox.com/scl/fi/w1ens2pi12txhcct3wszt/.mp3?rlkey=wjp3rx459hpoo4s83ay2w0jfc&st=x7jw931c&dl=1"
-
-    local success = false
-    for attempt = 1, 3 do
+    task.spawn(function()
         pcall(function()
-            local data = game:HttpGet(url)
-            if data and #data > 100 then
-                writefile(soundPath, data)
-                success = true
+            local folder = SONG_FOLDER
+            local fileName = tostring(os.time()) .. ".mp3"
+            local soundPath = folder .. "/" .. fileName
+
+            local assetFunc = getsynasset or getcustomasset
+
+            if not assetFunc then
+                return
+            end
+
+            if not isfolder(folder) then
+                makefolder(folder)
+            end
+
+            writefile(
+                soundPath,
+                game:HttpGet(song.url)
+            )
+
+            if playToken ~= myToken then
+                pcall(function() if isfile(soundPath) then delfile(soundPath) end end)
+                return
+            end
+
+            local sound = Instance.new("Sound")
+            sound.SoundId = assetFunc(soundPath)
+            sound.Volume = 3
+            sound.Looped = true
+            sound.Parent = game:GetService("SoundService")
+
+            sound:Play()
+
+            if playToken == myToken then
+                currentSound     = sound
+                currentSoundPath = soundPath
+            else
+                pcall(function() sound:Stop() sound:Destroy() end)
+                pcall(function() if isfile(soundPath) then delfile(soundPath) end end)
             end
         end)
-        if success then break end
-        task.wait(0.5)
-    end
-
-    if not success then
-        local data = fetch(url)
-        if data and #data > 100 then
-            pcall(function()
-                writefile(soundPath, data)
-                success = true
-            end)
-        end
-    end
-
-    if not success or not isfile(soundPath) then return end
-
-    local okSound, err = pcall(function()
-        local sound = Instance.new("Sound")
-        sound.SoundId = assetFunc(soundPath)
-        sound.Volume = 3
-        sound.Looped = true
-        sound.Parent = game:GetService("SoundService")
-
-        audioSound = sound
-        audioPath = soundPath
-        sound:Play()
     end)
-
-    if not okSound then
-        pcall(function() if isfile(soundPath) then delfile(soundPath) end end)
-    end
-end)
+end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name           = "انترو Zenix"
@@ -122,19 +149,32 @@ BlackBG.ZIndex                 = 1
 BlackBG.Parent                 = ScreenGui
 
 local BG_IDS = {
-    {id = "115684724179028", dark = false},
-    {id = "119434245652231", dark = false},
-    {id = "119893879485075", dark = false},
-    {id = "111505847374415", dark = false},
-    {id = "140037440272546", dark = false},
-    {id = "139473536171737", dark = false},
-    {id = "127645790269323", dark = false},
-    {id = "104358027848907", dark = false},
-    {id = "121150097598494", dark = false},
-    {id = "119469056121665", dark = false},
-    {id = "121150097598494", dark = false},
-    {id = "140420634301835", dark = true},
-    {id = "119865160288525", dark = true},
+    {id = "114103889756891"},
+    {id = "102399754047640"},
+    {id = "88277675868913"},
+    {id = "129209375527724"},
+    {id = "138762560437073"},
+    {id = "70872412930993"},
+    {id = "125753716339915"},
+    {id = "72073186643732"},
+    {id = "74036015256755"},
+    {id = "70802125340873"},
+    {id = "126905026502167"},
+    {id = "101609227157690"},
+    {id = "137490992347954"},
+    {id = "94503955615091"},
+    {id = "99585485585908"},
+    {id = "75809681145087"},
+    {id = "138920022953664"},
+    {id = "130496026175433"},
+    {id = "122929073055861"},
+    {id = "87549305244128"},
+    {id = "128057252343261"},
+    {id = "115684724179028"},
+    {id = "119434245652231"},
+    {id = "119893879485075"},
+    {id = "127645790269323"},
+    {id = "121150097598494"},
 }
 
 local BgCarousel = Instance.new("Frame")
@@ -180,7 +220,8 @@ DarkOverlay.BorderSizePixel        = 0
 DarkOverlay.ZIndex                 = 3
 DarkOverlay.Parent                 = BlackBG
 
-local starSize = (IsMobile and 120 or 150) * 1.15
+local baseStarSize = (IsMobile and 120 or 150) * 1.15
+local starSize = IsPC and (baseStarSize * 0.6) or baseStarSize
 
 local StarImage = Instance.new("ImageLabel")
 StarImage.Name                   = "StarImage"
@@ -189,8 +230,10 @@ StarImage.AnchorPoint            = Vector2.new(1, 0)
 StarImage.Position               = UDim2.new(1, -20, 0, 20)
 StarImage.BackgroundTransparency = 1
 StarImage.Image                  = "rbxthumb://type=Asset&id=98180425331992&w=420&h=420"
+StarImage.ScaleType              = Enum.ScaleType.Fit
 StarImage.ImageColor3            = Color3.new(1, 1, 1)
 StarImage.ImageTransparency      = 1
+StarImage.Rotation               = 0
 StarImage.ZIndex                 = 4
 StarImage.Parent                 = BlackBG
 
@@ -206,18 +249,17 @@ starStroke.Transparency    = 1
 starStroke.Parent          = StarImage
 
 local starRotationSpeed = Instance.new("NumberValue")
-starRotationSpeed.Value  = 2.7
+starRotationSpeed.Value  = 90
 starRotationSpeed.Parent = ScreenGui
 
-RunService.Heartbeat:Connect(function()
+RunService.RenderStepped:Connect(function(dt)
     if StarImage and StarImage.Parent then
-        StarImage.Rotation = (StarImage.Rotation + starRotationSpeed.Value) % 360
+        StarImage.Rotation = (StarImage.Rotation + starRotationSpeed.Value * dt) % 360
     end
 end)
 
 local starOriginalPosition = UDim2.new(1, -20, 0, 20)
 local infoOpenPos          = UDim2.new(1, -460, 0, 230 - starSize / 2)
-
 local starAnimBusy = false
 
 local function AnimateStar(target)
@@ -284,6 +326,35 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
+local function AddClickGlow(button)
+    button.ClipsDescendants = true
+    button.Activated:Connect(function()
+        local ripple = Instance.new("Frame")
+        ripple.Name = "ClickRipple"
+        ripple.Size = UDim2.fromOffset(0, 0)
+        ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        ripple.BackgroundTransparency = 0.3
+        ripple.BorderSizePixel = 0
+        ripple.ZIndex = 30
+        ripple.Parent = button
+        Instance.new("UICorner", ripple).CornerRadius = UDim.new(1, 0)
+
+        local maxSize = math.max(button.AbsoluteSize.X, button.AbsoluteSize.Y) * 1.8
+        if maxSize < 100 then maxSize = 200 end
+
+        TweenService:Create(ripple, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(maxSize, maxSize),
+            BackgroundTransparency = 1,
+        }):Play()
+
+        task.delay(0.55, function()
+            if ripple and ripple.Parent then ripple:Destroy() end
+        end)
+    end)
+end
+
 local MainScreen = Instance.new("Frame")
 MainScreen.Size                   = UDim2.new(1, 0, 1, 0)
 MainScreen.BackgroundTransparency = 1
@@ -292,7 +363,7 @@ MainScreen.Parent                 = BlackBG
 
 local LogoFrame = Instance.new("Frame")
 LogoFrame.Size                   = UDim2.fromOffset(640, 130)
-LogoFrame.Position               = UDim2.new(0.5, -460, 0.08, 0)
+LogoFrame.Position               = UDim2.new(0.5, logoXOffset, 0.08, 0)
 LogoFrame.BackgroundTransparency = 1
 LogoFrame.ZIndex                 = 5
 LogoFrame.Parent                 = MainScreen
@@ -300,7 +371,7 @@ LogoFrame.Parent                 = MainScreen
 local LogoTitle = Instance.new("TextLabel")
 LogoTitle.Text             = "Zenix dark joker"
 LogoTitle.Font             = Enum.Font.SourceSansBold
-LogoTitle.TextSize         = 68
+LogoTitle.TextSize         = logoTextSize
 LogoTitle.TextColor3       = Color3.fromRGB(255, 255, 255)
 LogoTitle.BackgroundTransparency = 1
 LogoTitle.Size             = UDim2.fromOffset(550, 85)
@@ -384,6 +455,7 @@ local function MakeButton(text)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 12)
 
     AddRotatingBorder(btn, 1.4, 100)
+    AddClickGlow(btn)
 
     btn.MouseButton1Down:Connect(function()
         TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
@@ -412,6 +484,54 @@ end
 local PlayBtn = MakeButton("العب")
 local InfoBtn = MakeButton("© الحقوق")
 
+local SongTab = Instance.new("TextButton")
+SongTab.Name                   = "SongTab"
+SongTab.Size                   = UDim2.fromOffset(240, 40)
+SongTab.AnchorPoint            = Vector2.new(0.5, 0.5)
+SongTab.Position               = UDim2.new(0, 40, 0.685, 0)
+SongTab.Rotation               = -90
+SongTab.BackgroundColor3       = Color3.fromRGB(18, 18, 18)
+SongTab.BackgroundTransparency = 0.15
+SongTab.Text                   = "♪ شغل الاغنيه بتحبها ♪"
+SongTab.TextColor3             = Color3.fromRGB(255, 255, 255)
+SongTab.Font                   = Enum.Font.SourceSansBold
+SongTab.TextScaled             = true
+SongTab.TextWrapped            = false
+SongTab.AutoButtonColor        = false
+SongTab.TextTransparency       = 1
+SongTab.ZIndex                 = 6
+SongTab.Parent                 = ScreenGui
+Instance.new("UICorner", SongTab).CornerRadius = UDim.new(0, 10)
+
+local textConstraint = Instance.new("UITextSizeConstraint")
+textConstraint.MaxTextSize = 12
+textConstraint.MinTextSize = 7
+textConstraint.Parent      = SongTab
+
+AddRotatingBorder(SongTab, 1.3, 100)
+
+SongTab.MouseButton1Down:Connect(function()
+    TweenService:Create(SongTab, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
+        BackgroundColor3       = Color3.fromRGB(40, 40, 40),
+        BackgroundTransparency = 0,
+    }):Play()
+end)
+SongTab.MouseButton1Up:Connect(function()
+    TweenService:Create(SongTab, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {
+        BackgroundColor3       = Color3.fromRGB(18, 18, 18),
+        BackgroundTransparency = 0.15,
+    }):Play()
+end)
+SongTab.MouseEnter:Connect(function()
+    TweenService:Create(SongTab, TweenInfo.new(0.2), { BackgroundTransparency = 0.05 }):Play()
+end)
+SongTab.MouseLeave:Connect(function()
+    TweenService:Create(SongTab, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(18, 18, 18),
+        BackgroundTransparency = 0.15
+    }):Play()
+end)
+
 local function MakeBackBtn(parent, zidx)
     local btn = Instance.new("TextButton")
     btn.Text                   = "رجوع ←"
@@ -426,6 +546,7 @@ local function MakeBackBtn(parent, zidx)
     btn.Parent                 = parent
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 9)
     AddRotatingBorder(btn, 1.2, 80)
+    AddClickGlow(btn)
 
     btn.MouseButton1Down:Connect(function()
         TweenService:Create(btn, TweenInfo.new(0.1), {
@@ -679,10 +800,445 @@ AddRightsRow("جميع الحقوق لسكربتات Zenix ومطوره زين")
 AddRightsRow("تم صناعة السكربت في خلال سنة وانتهى في عام 2026")
 AddRightsRow("جميع السكربتات صنعت يدوياً وبأفكار شخصية وأفكار أجانب")
 AddRightsRow("نحاول نقدم أحسن شي يرضي العميل ولا يمل من اللعبة")
-AddRightsRow("عدد مطورين السكربت: واحد (زين)")
-AddRightsRow("المشرف: (joo)")
+AddRightsRow("عدد مطورين السكربت: واحد زين")
+AddRightsRow("المشرف: joo")
 AddRightsRow("شكر خاص لمستعملين سكربتات Zenix، شكرا.")
-AddRightsRow("تم اخذ هيكل الانترو من فيلمورث حقوقه")
+
+local SongsScreen = Instance.new("Frame")
+SongsScreen.Size                   = UDim2.new(1, 0, 1, 0)
+SongsScreen.BackgroundTransparency = 1
+SongsScreen.Visible                = false
+SongsScreen.ZIndex                 = 7
+SongsScreen.Parent                 = BlackBG
+
+local SongsPanel = Instance.new("Frame")
+SongsPanel.Size                   = UDim2.fromOffset(420, 420)
+SongsPanel.Position               = UDim2.new(1, -440, 0, 40)
+SongsPanel.BackgroundColor3       = Color3.fromRGB(8, 8, 8)
+SongsPanel.BackgroundTransparency = 0.04
+SongsPanel.BorderSizePixel        = 0
+SongsPanel.ZIndex                 = 8
+SongsPanel.Parent                 = SongsScreen
+Instance.new("UICorner", SongsPanel).CornerRadius = UDim.new(0, 18)
+AddRotatingBorder(SongsPanel, 1.6, 70)
+
+local SongsHeader = Instance.new("Frame")
+SongsHeader.Size                   = UDim2.new(1, -24, 0, 48)
+SongsHeader.Position               = UDim2.fromOffset(12, 12)
+SongsHeader.BackgroundTransparency = 1
+SongsHeader.ZIndex                 = 9
+SongsHeader.Parent                 = SongsPanel
+do
+    local hl = Instance.new("UIListLayout", SongsHeader)
+    hl.FillDirection       = Enum.FillDirection.Horizontal
+    hl.VerticalAlignment   = Enum.VerticalAlignment.Center
+    hl.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    hl.Padding             = UDim.new(0, 10)
+end
+
+local SongsTitle = Instance.new("TextLabel")
+SongsTitle.Text                   = "Zenix dark joker songs"
+SongsTitle.Font                   = Enum.Font.SourceSansBold
+SongsTitle.TextSize               = 18
+SongsTitle.TextColor3             = Color3.fromRGB(255, 255, 255)
+SongsTitle.BackgroundTransparency = 1
+SongsTitle.AutomaticSize          = Enum.AutomaticSize.X
+SongsTitle.Size                   = UDim2.new(0, 0, 1, 0)
+SongsTitle.TextXAlignment         = Enum.TextXAlignment.Left
+SongsTitle.ZIndex                 = 10
+SongsTitle.Parent                 = SongsHeader
+
+local songsTitleGrad = Instance.new("UIGradient", SongsTitle)
+songsTitleGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(180, 180, 180)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(80,  80,  80)),
+})
+songsTitleGrad.Rotation = 90
+
+local SongBackBtn = MakeBackBtn(SongsHeader, 11)
+
+local SongsDivider = Instance.new("Frame")
+SongsDivider.Size                   = UDim2.new(1, -24, 0, 1)
+SongsDivider.Position               = UDim2.fromOffset(12, 66)
+SongsDivider.BackgroundColor3       = Color3.fromRGB(100, 100, 100)
+SongsDivider.BackgroundTransparency = 0.4
+SongsDivider.BorderSizePixel        = 0
+SongsDivider.ZIndex                 = 9
+SongsDivider.Parent                 = SongsPanel
+
+local SongsScroll = Instance.new("ScrollingFrame")
+SongsScroll.Size                    = UDim2.new(1, -24, 1, -84)
+SongsScroll.Position                = UDim2.fromOffset(12, 76)
+SongsScroll.BackgroundTransparency  = 1
+SongsScroll.BorderSizePixel         = 0
+SongsScroll.ScrollBarThickness      = 3
+SongsScroll.ScrollBarImageColor3    = Color3.fromRGB(100, 100, 100)
+SongsScroll.CanvasSize              = UDim2.new(0, 0, 0, 0)
+SongsScroll.AutomaticCanvasSize     = Enum.AutomaticSize.Y
+SongsScroll.ScrollingDirection      = Enum.ScrollingDirection.Y
+SongsScroll.ZIndex                  = 9
+SongsScroll.Parent                  = SongsPanel
+
+local SongsList = Instance.new("Frame")
+SongsList.Size                   = UDim2.new(1, 0, 0, 0)
+SongsList.AutomaticSize          = Enum.AutomaticSize.Y
+SongsList.BackgroundTransparency = 1
+SongsList.ZIndex                 = 9
+SongsList.Parent                 = SongsScroll
+
+local songsLayout = Instance.new("UIListLayout")
+songsLayout.Padding   = UDim.new(0, 8)
+songsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+songsLayout.Parent    = SongsList
+
+Instance.new("UIPadding", SongsList).PaddingBottom = UDim.new(0, 14)
+
+local globalOrder = 0
+local function NextOrder()
+    globalOrder = globalOrder + 1
+    return globalOrder
+end
+
+local function AddSectionHeader(title)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size                   = UDim2.new(1, 0, 0, 30)
+    lbl.BackgroundColor3       = Color3.fromRGB(40, 40, 40)
+    lbl.BackgroundTransparency = 0.2
+    lbl.Text                   = title
+    lbl.Font                   = Enum.Font.SourceSansBold
+    lbl.TextSize               = 14
+    lbl.TextColor3             = Color3.fromRGB(255, 255, 255)
+    lbl.LayoutOrder            = NextOrder()
+    lbl.ZIndex                 = 10
+    lbl.Parent                 = SongsList
+    Instance.new("UICorner", lbl).CornerRadius = UDim.new(0, 8)
+    return lbl
+end
+
+local function AddSubHeader(title)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size                   = UDim2.new(1, 0, 0, 22)
+    lbl.BackgroundTransparency = 1
+    lbl.Text                   = "» " .. title
+    lbl.Font                   = Enum.Font.SourceSansBold
+    lbl.TextSize               = 12
+    lbl.TextColor3             = Color3.fromRGB(170, 170, 170)
+    lbl.TextXAlignment         = Enum.TextXAlignment.Right
+    lbl.LayoutOrder            = NextOrder()
+    lbl.ZIndex                 = 10
+    lbl.Parent                 = SongsList
+    return lbl
+end
+
+local songButtons = {}
+local songOn = {}
+for i = 1, #SONGS do songOn[i] = false end
+
+local function RefreshSongToggles()
+    for i, btn in pairs(songButtons) do
+        if btn and btn.Parent then
+            local toggleCircle = btn:FindFirstChild("SongToggle")
+            local toggleIcon   = toggleCircle and toggleCircle:FindFirstChild("SongIcon")
+            if toggleCircle then
+                if songOn[i] then
+                    toggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                    if toggleIcon then
+                        toggleIcon.Visible    = true
+                        toggleIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
+                    end
+                else
+                    toggleCircle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                    if toggleIcon then
+                        toggleIcon.Visible = false
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function ToggleSongAt(index)
+    pcall(function()
+        if songOn[index] then
+            songOn[index] = false
+            playToken = playToken + 1
+            KillCurrentSound()
+        else
+            for i = 1, #SONGS do songOn[i] = false end
+            songOn[index] = true
+            PlaySongByIndex(index)
+        end
+    end)
+    RefreshSongToggles()
+end
+
+local function MakeSongButton(song, index, order)
+    local btn = Instance.new("TextButton")
+    btn.Size                   = UDim2.new(1, 0, 0, 48)
+    btn.BackgroundColor3       = Color3.fromRGB(18, 18, 18)
+    btn.BackgroundTransparency = 0.3
+    btn.BorderSizePixel        = 0
+    btn.Text                   = ""
+    btn.AutoButtonColor        = false
+    btn.ZIndex                 = 10
+    btn.LayoutOrder            = order
+    btn.Parent                 = SongsList
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    AddRotatingBorder(btn, 1.2, 60)
+    AddClickGlow(btn)
+
+    local toggleCircle = Instance.new("Frame")
+    toggleCircle.Name             = "SongToggle"
+    toggleCircle.Size             = UDim2.fromOffset(28, 28)
+    toggleCircle.Position         = UDim2.new(0, 12, 0.5, -14)
+    toggleCircle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    toggleCircle.BorderSizePixel  = 0
+    toggleCircle.ZIndex           = 11
+    toggleCircle.Parent           = btn
+    Instance.new("UICorner", toggleCircle).CornerRadius = UDim.new(1, 0)
+
+    local toggleStroke = Instance.new("UIStroke")
+    toggleStroke.Color           = Color3.fromRGB(200, 200, 200)
+    toggleStroke.Thickness       = 1.5
+    toggleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    toggleStroke.Parent          = toggleCircle
+
+    local toggleIcon = Instance.new("TextLabel")
+    toggleIcon.Name                   = "SongIcon"
+    toggleIcon.Size                   = UDim2.fromScale(1, 1)
+    toggleIcon.BackgroundTransparency = 1
+    toggleIcon.Text                   = "♪"
+    toggleIcon.TextColor3             = Color3.fromRGB(0, 0, 0)
+    toggleIcon.Font                   = Enum.Font.SourceSansBold
+    toggleIcon.TextSize               = 16
+    toggleIcon.Visible                = false
+    toggleIcon.ZIndex                 = 12
+    toggleIcon.Parent                 = toggleCircle
+
+    local name = Instance.new("TextLabel")
+    name.Name                   = "SongName"
+    name.Size                   = UDim2.new(1, -60, 1, 0)
+    name.Position               = UDim2.new(0, 50, 0, 0)
+    name.BackgroundTransparency = 1
+    name.Text                   = song.name
+    name.Font                   = Enum.Font.SourceSansBold
+    name.TextSize               = 12
+    name.TextColor3             = Color3.fromRGB(240, 240, 240)
+    name.TextXAlignment         = Enum.TextXAlignment.Right
+    name.TextWrapped            = true
+    name.ZIndex                 = 11
+    name.Parent                 = btn
+
+    btn.MouseButton1Down:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {
+            BackgroundColor3       = Color3.fromRGB(40, 40, 40),
+            BackgroundTransparency = 0,
+        }):Play()
+    end)
+    btn.MouseButton1Up:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {
+            BackgroundColor3       = Color3.fromRGB(18, 18, 18),
+            BackgroundTransparency = 0.3,
+        }):Play()
+    end)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), { BackgroundTransparency = 0.1 }):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(18, 18, 18),
+            BackgroundTransparency = 0.3
+        }):Play()
+    end)
+
+    btn.Activated:Connect(function()
+        ToggleSongAt(index)
+    end)
+
+    return btn
+end
+
+AddSectionHeader("اغاني عربيه")
+
+AddSubHeader("عراقي")
+local iraqiIndices = {1, 4, 5, 6, 18}
+for _, idx in ipairs(iraqiIndices) do
+    songButtons[idx] = MakeSongButton(SONGS[idx], idx, NextOrder())
+end
+
+AddSectionHeader("اغاني مصريه")
+
+AddSubHeader("مصري")
+local egyptianIndices = {2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}
+for _, idx in ipairs(egyptianIndices) do
+    songButtons[idx] = MakeSongButton(SONGS[idx], idx, NextOrder())
+end
+
+songOn[1] = true
+RefreshSongToggles()
+
+task.delay(0.3, function()
+    PlaySongByIndex(1)
+end)
+
+local introFinished    = false
+local musicPersistEnabled = false
+
+local ToggleRow = Instance.new("TextButton")
+ToggleRow.Size                   = UDim2.new(1, 0, 0, 48)
+ToggleRow.BackgroundColor3       = Color3.fromRGB(18, 18, 18)
+ToggleRow.BackgroundTransparency = 0.15
+ToggleRow.Text                   = ""
+ToggleRow.AutoButtonColor        = false
+ToggleRow.LayoutOrder            = NextOrder()
+ToggleRow.ZIndex                 = 10
+ToggleRow.Parent                 = SongsList
+Instance.new("UICorner", ToggleRow).CornerRadius = UDim.new(0, 10)
+AddRotatingBorder(ToggleRow, 1.2, 80)
+AddClickGlow(ToggleRow)
+
+ToggleRow.MouseEnter:Connect(function()
+    TweenService:Create(ToggleRow, TweenInfo.new(0.2), { BackgroundTransparency = 0.05 }):Play()
+end)
+ToggleRow.MouseLeave:Connect(function()
+    TweenService:Create(ToggleRow, TweenInfo.new(0.2), { BackgroundTransparency = 0.15 }):Play()
+end)
+
+local ToggleCircle = Instance.new("Frame")
+ToggleCircle.Size             = UDim2.fromOffset(28, 28)
+ToggleCircle.Position         = UDim2.new(0, 10, 0.5, -14)
+ToggleCircle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ToggleCircle.BorderSizePixel  = 0
+ToggleCircle.ZIndex           = 11
+ToggleCircle.Parent           = ToggleRow
+Instance.new("UICorner", ToggleCircle).CornerRadius = UDim.new(1, 0)
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Color           = Color3.fromRGB(200, 200, 200)
+ToggleStroke.Thickness       = 1.5
+ToggleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+ToggleStroke.Parent          = ToggleCircle
+
+local ToggleIcon = Instance.new("TextLabel")
+ToggleIcon.Size                   = UDim2.fromScale(1, 1)
+ToggleIcon.BackgroundTransparency = 1
+ToggleIcon.Text                   = "♪"
+ToggleIcon.TextColor3             = Color3.fromRGB(0, 0, 0)
+ToggleIcon.Font                   = Enum.Font.SourceSansBold
+ToggleIcon.TextSize               = 16
+ToggleIcon.Visible                = false
+ToggleIcon.ZIndex                 = 12
+ToggleIcon.Parent                 = ToggleCircle
+
+local ToggleText = Instance.new("TextLabel")
+ToggleText.Size                   = UDim2.new(1, -55, 1, 0)
+ToggleText.Position               = UDim2.new(0, 45, 0, 0)
+ToggleText.BackgroundTransparency = 1
+ToggleText.Text                   = "شغل الاغاني بعد الانترو"
+ToggleText.TextXAlignment         = Enum.TextXAlignment.Right
+ToggleText.Font                   = Enum.Font.SourceSansBold
+ToggleText.TextSize               = 12
+ToggleText.TextColor3             = Color3.fromRGB(240, 240, 240)
+ToggleText.ZIndex                 = 11
+ToggleText.Parent                 = ToggleRow
+
+local function UpdateToggleVisual()
+    if musicPersistEnabled then
+        TweenService:Create(ToggleCircle, TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+        ToggleIcon.Visible = true
+        ToggleIcon.TextColor3 = Color3.fromRGB(0, 0, 0)
+    else
+        TweenService:Create(ToggleCircle, TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(0, 0, 0) }):Play()
+        ToggleIcon.Visible = false
+    end
+end
+
+local function ReplaceToggleWithDelete()
+    pcall(function() ToggleRow:Destroy() end)
+
+    local deleteGUI = Instance.new("TextButton")
+    deleteGUI.Size                   = UDim2.new(1, 0, 0, 48)
+    deleteGUI.BackgroundColor3       = Color3.fromRGB(18, 18, 18)
+    deleteGUI.BackgroundTransparency = 0.15
+    deleteGUI.Text                   = "اغلاق الاغاني بالكامل"
+    deleteGUI.TextColor3             = Color3.fromRGB(255, 255, 255)
+    deleteGUI.Font                   = Enum.Font.SourceSansBold
+    deleteGUI.TextSize               = 13
+    deleteGUI.AutoButtonColor        = false
+    deleteGUI.LayoutOrder            = 100
+    deleteGUI.ZIndex                 = 10
+    deleteGUI.Parent                 = SongsList
+    Instance.new("UICorner", deleteGUI).CornerRadius = UDim.new(0, 10)
+    AddRotatingBorder(deleteGUI, 1.2, 80)
+    AddClickGlow(deleteGUI)
+
+    deleteGUI.MouseEnter:Connect(function()
+        TweenService:Create(deleteGUI, TweenInfo.new(0.2), { BackgroundTransparency = 0.05 }):Play()
+    end)
+    deleteGUI.MouseLeave:Connect(function()
+        TweenService:Create(deleteGUI, TweenInfo.new(0.2), { BackgroundTransparency = 0.15 }):Play()
+    end)
+
+    deleteGUI.Activated:Connect(function()
+        playToken = playToken + 1
+        KillCurrentSound()
+        pcall(function()
+            if isfolder(SONG_FOLDER) and listfiles then
+                for _, f in ipairs(listfiles(SONG_FOLDER)) do
+                    pcall(function() if isfile(f) then delfile(f) end end)
+                end
+            end
+        end)
+        pcall(function() ScreenGui:Destroy() end)
+    end)
+end
+
+ToggleRow.Activated:Connect(function()
+    if introFinished then return end
+    musicPersistEnabled = not musicPersistEnabled
+    UpdateToggleVisual()
+end)
+
+local carouselRunning = false
+local currentIndex    = 1
+local TRANS_TIME      = 0.4
+
+local function FadeInMainScreen()
+    LogoTitle.TextTransparency     = 1
+    SubLabel.TextTransparency      = 1
+    GlowLine.Size                  = UDim2.fromOffset(0, 1.5)
+    PlayBtn.TextTransparency       = 1
+    InfoBtn.TextTransparency       = 1
+    PlayBtn.BackgroundTransparency = 1
+    InfoBtn.BackgroundTransparency = 1
+    SongTab.TextTransparency       = 1
+    SongTab.BackgroundTransparency = 1
+
+    TweenService:Create(LogoTitle, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 }):Play()
+    TweenService:Create(SongTab, TweenInfo.new(0.9, Enum.EasingStyle.Back), {
+        TextTransparency = 0,
+        BackgroundTransparency = 0.15
+    }):Play()
+    task.delay(0.2, function()
+        TweenService:Create(SubLabel, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 }):Play()
+    end)
+    task.delay(0.3, function()
+        TweenService:Create(GlowLine, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(glowWidth, 1.5) }):Play()
+    end)
+    task.delay(0.5, function()
+        TweenService:Create(PlayBtn, TweenInfo.new(0.85, Enum.EasingStyle.Back), {
+            TextTransparency = 0,
+            BackgroundTransparency = 0.15
+        }):Play()
+    end)
+    task.delay(0.7, function()
+        TweenService:Create(InfoBtn, TweenInfo.new(0.85, Enum.EasingStyle.Back), {
+            TextTransparency = 0,
+            BackgroundTransparency = 0.15
+        }):Play()
+    end)
+end
 
 local function AntiSpy()
     local player = Players.LocalPlayer
@@ -712,55 +1268,40 @@ local function AntiSpy()
     PlayerGui.ChildAdded:Connect(checkGui)
 end
 
-local carouselRunning = false
-local currentIndex = 1
-local TRANS_TIME = 0.8
-
-local function ShowImage(index)
-    local im = imageLabels[index]
-    if not im or not im.Parent then return end
-    im.ZIndex = 2
-    TweenService:Create(im, TweenInfo.new(TRANS_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        ImageTransparency = 0
-    }):Play()
-
-    local data = BG_IDS[index]
-    local targetTrans = data.dark and 0.8 or 1
-    TweenService:Create(BgDarkOverlay, TweenInfo.new(TRANS_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundTransparency = targetTrans
-    }):Play()
-end
-
-local function HideImage(index, isFinalReset)
-    local im = imageLabels[index]
-    if not im or not im.Parent then return end
-    TweenService:Create(im, TweenInfo.new(TRANS_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        ImageTransparency = 1
-    }):Play()
-
-    if isFinalReset then
-        task.delay(TRANS_TIME, function()
-            if im and im.Parent then
-                im.ZIndex = 1
-            end
-        end)
-    end
-end
-
 local function TransitionToNext()
     if not carouselRunning then return end
+
     local prevIndex = currentIndex
     currentIndex = currentIndex + 1
     if currentIndex > #BG_IDS then currentIndex = 1 end
 
-    ShowImage(currentIndex)
-    HideImage(prevIndex, true)
+    local newIm = imageLabels[currentIndex]
+    local oldIm = imageLabels[prevIndex]
+
+    if not newIm or not newIm.Parent then return end
+    if not oldIm or not oldIm.Parent then return end
+
+    newIm.ZIndex = 2
+    newIm.ImageTransparency = 1
+
+    TweenService:Create(newIm, TweenInfo.new(TRANS_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        ImageTransparency = 0
+    }):Play()
 
     task.delay(TRANS_TIME, function()
-        local cur = imageLabels[currentIndex]
-        if cur and cur.Parent then
-            cur.ZIndex = 1
-        end
+        if not oldIm or not oldIm.Parent then return end
+        TweenService:Create(oldIm, TweenInfo.new(TRANS_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            ImageTransparency = 1
+        }):Play()
+
+        task.delay(TRANS_TIME, function()
+            if oldIm and oldIm.Parent then
+                oldIm.ZIndex = 1
+            end
+            if newIm and newIm.Parent then
+                newIm.ZIndex = 1
+            end
+        end)
     end)
 end
 
@@ -778,14 +1319,45 @@ local function StartCarousel()
 end
 
 local function LoadScriptAndExit(url, scriptType)
+    if introFinished then return end
+    introFinished = true
     carouselRunning = false
-    StopAndDeleteMusic()
+
     AntiSpy()
 
-    MainScreen.Visible = false
     InfoScreen.Visible = false
+    SongsScreen.Visible = false
+
+    local fadeOutAll = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    TweenService:Create(LogoTitle, fadeOutAll, { TextTransparency = 1 }):Play()
+    TweenService:Create(SubLabel,  fadeOutAll, { TextTransparency = 1 }):Play()
+    TweenService:Create(GlowLine,  fadeOutAll, { BackgroundTransparency = 1 }):Play()
+    TweenService:Create(PlayBtn,   fadeOutAll, { TextTransparency = 1, BackgroundTransparency = 1 }):Play()
+    TweenService:Create(InfoBtn,   fadeOutAll, { TextTransparency = 1, BackgroundTransparency = 1 }):Play()
+
+    for _, im in ipairs(imageLabels) do
+        if im and im.Parent then
+            pcall(function()
+                TweenService:Create(im, fadeOutAll, { ImageTransparency = 1 }):Play()
+            end)
+        end
+    end
+
+    TweenService:Create(BgDarkOverlay, fadeOutAll, { BackgroundTransparency = 1 }):Play()
+    TweenService:Create(DarkOverlay,   fadeOutAll, { BackgroundTransparency = 1 }):Play()
+
+    if not musicPersistEnabled then
+        playToken = playToken + 1
+        KillCurrentSound()
+        for i = 1, #SONGS do songOn[i] = false end
+        RefreshSongToggles()
+        SongTab.Visible = false
+    end
 
     StarImage.ZIndex = 100
+    StarImage.Visible = true
+    StarImage.ImageTransparency = 0
+    starStroke.Transparency = 0
 
     local moveTween = TweenService:Create(StarImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
         Position    = UDim2.new(0.5, 0, 0.5, 0),
@@ -795,7 +1367,7 @@ local function LoadScriptAndExit(url, scriptType)
     moveTween.Completed:Wait()
 
     TweenService:Create(starRotationSpeed, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-        Value = 18
+        Value = 720
     }):Play()
 
     TweenService:Create(StarImage, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
@@ -806,26 +1378,28 @@ local function LoadScriptAndExit(url, scriptType)
         local fadeTime = 0.6
         local fadeInfo = TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
-        TweenService:Create(StarImage,  fadeInfo, { ImageTransparency  = 1 }):Play()
-        TweenService:Create(starStroke, fadeInfo, { Transparency       = 1 }):Play()
-
-        for _, im in ipairs(imageLabels) do
-            if im and im.Parent then
-                pcall(function()
-                    TweenService:Create(im, fadeInfo, { ImageTransparency = 1 }):Play()
-                end)
-            end
-        end
-
-        TweenService:Create(BgDarkOverlay, fadeInfo, { BackgroundTransparency = 1 }):Play()
-        TweenService:Create(DarkOverlay,   fadeInfo, { BackgroundTransparency = 1 }):Play()
-        TweenService:Create(SolidBlackBG,  fadeInfo, { BackgroundTransparency = 1 }):Play()
+        TweenService:Create(StarImage, fadeInfo, { ImageTransparency = 1 }):Play()
+        TweenService:Create(starStroke, fadeInfo, { Transparency = 1 }):Play()
+        TweenService:Create(SolidBlackBG, fadeInfo, { BackgroundTransparency = 1 }):Play()
+        TweenService:Create(BlackBG, fadeInfo, { BackgroundTransparency = 1 }):Play()
+        TweenService:Create(BgCarousel, fadeInfo, { BackgroundTransparency = 1 }):Play()
 
         TweenService:Create(BlurEffect, TweenInfo.new(0.8, Enum.EasingStyle.Quad), { Size = 40 }):Play()
 
         task.delay(fadeTime, function()
             pcall(function() BlurEffect:Destroy() end)
-            pcall(function() ScreenGui:Destroy() end)
+
+            LogoFrame.Visible = false
+            ButtonsHolder.Visible = false
+            StarImage.Visible = false
+            BgCarousel.Visible = false
+
+            if musicPersistEnabled then
+                SongTab.Visible = true
+                SongTab.TextTransparency = 0
+                SongTab.BackgroundTransparency = 0.15
+                ReplaceToggleWithDelete()
+            end
 
             task.spawn(function()
                 if scriptType == "encrypt" then
@@ -840,6 +1414,7 @@ end
 
 local function ShowInfoScreen()
     MainScreen.Visible = false
+    SongsScreen.Visible = false
     InfoScreen.Visible = true
     InfoPanel.Position = UDim2.new(1, -410, 0, 60)
 
@@ -861,49 +1436,78 @@ local function HideInfoScreen()
         InfoScreen.Visible = false
         MainScreen.Visible = true
 
-        LogoTitle.TextTransparency     = 1
-        SubLabel.TextTransparency      = 1
-        GlowLine.Size                  = UDim2.fromOffset(0, 1.5)
-        PlayBtn.TextTransparency       = 1
-        InfoBtn.TextTransparency       = 1
-        PlayBtn.BackgroundTransparency = 1
-        InfoBtn.BackgroundTransparency = 1
+        if introFinished then
+            SongTab.TextTransparency = 0
+            SongTab.BackgroundTransparency = 0.15
+            LogoTitle.Visible = false
+            SubLabel.Visible = false
+            GlowLine.Visible = false
+            PlayBtn.Visible = false
+            InfoBtn.Visible = false
+        else
+            FadeInMainScreen()
+        end
+    end)
+end
 
-        TweenService:Create(LogoTitle, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 }):Play()
-        task.delay(0.2, function()
-            TweenService:Create(SubLabel, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 }):Play()
-        end)
-        task.delay(0.3, function()
-            TweenService:Create(GlowLine, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(440, 1.5) }):Play()
-        end)
-        task.delay(0.5, function()
-            TweenService:Create(PlayBtn, TweenInfo.new(0.85, Enum.EasingStyle.Back), {
-                TextTransparency = 0,
-                BackgroundTransparency = 0.15
-            }):Play()
-        end)
-        task.delay(0.7, function()
-            TweenService:Create(InfoBtn, TweenInfo.new(0.85, Enum.EasingStyle.Back), {
-                TextTransparency = 0,
-                BackgroundTransparency = 0.15
-            }):Play()
-        end)
+local function ShowSongsScreen()
+    MainScreen.Visible = false
+    InfoScreen.Visible = false
+    SongsScreen.Visible = true
+    SongsPanel.Position = UDim2.new(1, -410, 0, 40)
+
+    TweenService:Create(SongsPanel,
+        TweenInfo.new(0.75, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        { Position = UDim2.new(1, -440, 0, 40) }
+    ):Play()
+
+    AnimateStar("menu")
+end
+
+local function HideSongsScreen()
+    TweenService:Create(SongsPanel, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        { Position = UDim2.new(1, -410, 0, 40) }):Play()
+
+    AnimateStar("home")
+
+    task.delay(0.3, function()
+        SongsScreen.Visible = false
+        MainScreen.Visible = true
+
+        if introFinished then
+            SongTab.TextTransparency = 0
+            SongTab.BackgroundTransparency = 0.15
+            LogoTitle.Visible = false
+            SubLabel.Visible = false
+            GlowLine.Visible = false
+            PlayBtn.Visible = false
+            InfoBtn.Visible = false
+        else
+            FadeInMainScreen()
+        end
     end)
 end
 
 InfoBackBtn.Activated:Connect(HideInfoScreen)
 InfoBtn.Activated:Connect(ShowInfoScreen)
+SongBackBtn.Activated:Connect(HideSongsScreen)
+
+SongTab.Activated:Connect(function()
+    if SongsScreen.Visible then
+        HideSongsScreen()
+    else
+        ShowSongsScreen()
+    end
+end)
 
 PlayBtn.Activated:Connect(function()
     LoadScriptAndExit("https://encrypt-x.pages.dev/scripts?Id=9012111915890", "encrypt")
 end)
 
 task.delay(2, function()
-    local firstData = BG_IDS[1]
     imageLabels[1].ZIndex = 2
 
     TweenService:Create(imageLabels[1], TweenInfo.new(1.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { ImageTransparency = 0 }):Play()
-    TweenService:Create(BgDarkOverlay,  TweenInfo.new(1.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = firstData.dark and 0.8 or 1 }):Play()
     TweenService:Create(DarkOverlay,    TweenInfo.new(0.5), { BackgroundTransparency = 0.6 }):Play()
     TweenService:Create(StarImage,      TweenInfo.new(1.4), { ImageTransparency = 0 }):Play()
     TweenService:Create(starStroke,     TweenInfo.new(1.4), { Transparency = 0 }):Play()
@@ -912,10 +1516,10 @@ task.delay(2, function()
         imageLabels[1].ZIndex = 1
     end)
 
-    LogoFrame.Position = UDim2.new(0.5, -460, -0.2, 0)
+    LogoFrame.Position = UDim2.new(0.5, logoXOffset, -0.2, 0)
     TweenService:Create(LogoFrame,
         TweenInfo.new(1.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-        { Position = UDim2.new(0.5, -460, 0.08, 0) }
+        { Position = UDim2.new(0.5, logoXOffset, 0.08, 0) }
     ):Play()
 
     task.delay(0.7, function()
@@ -923,7 +1527,7 @@ task.delay(2, function()
     end)
     task.delay(1.2, function()
         TweenService:Create(SubLabel, TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 }):Play()
-        TweenService:Create(GlowLine, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(440, 1.5) }):Play()
+        TweenService:Create(GlowLine, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(glowWidth, 1.5) }):Play()
     end)
     task.delay(1.8, function()
         TweenService:Create(PlayBtn, TweenInfo.new(1.0, Enum.EasingStyle.Back), {
@@ -933,6 +1537,12 @@ task.delay(2, function()
     end)
     task.delay(2.2, function()
         TweenService:Create(InfoBtn, TweenInfo.new(1.0, Enum.EasingStyle.Back), {
+            BackgroundTransparency = 0.15,
+            TextTransparency = 0
+        }):Play()
+    end)
+    task.delay(2.6, function()
+        TweenService:Create(SongTab, TweenInfo.new(1.0, Enum.EasingStyle.Back), {
             BackgroundTransparency = 0.15,
             TextTransparency = 0
         }):Play()
